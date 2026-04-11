@@ -66,9 +66,25 @@ export async function initVectorStore(): Promise<VectorStoreInstance> {
     return vectorStore;
   }
 
-  // Create table - using raw SQL for simplicity
-  // Schema will be inferred from first data insert
-  const table = await db.createTable('document_chunks', []);
+  // Create table with empty initial data (schema inferred)
+  // Note: LanceDB requires at least one record or explicit schema to create a table
+  const placeholderChunk = {
+    id: 0,
+    doc_id: '__placeholder__',
+    doc_title: '__placeholder__',
+    doc_url: '__placeholder__',
+    folder_id: '__placeholder__',
+    text_chunk: '__placeholder__',
+    token_count: 0,
+    vector: new Array(EMBEDDING_DIMENSION).fill(0),
+    doc_updated_at: 0,
+    chunk_index: 0,
+    created_at: 0,
+    sync_status: '__placeholder__'
+  };
+  const table = await db.createTable('document_chunks', [placeholderChunk]);
+  // Delete the placeholder after table creation
+  await table.delete('doc_id = "__placeholder__"');
   console.log('[vector-store] Created table document_chunks');
 
   vectorStore = { table, db };

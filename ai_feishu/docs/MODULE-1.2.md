@@ -182,7 +182,10 @@ ls data/vectors/
 1. **数据库路径**: 由环境变量 `DATA_DIR` 和 `SQLITE_PATH` 控制
 2. **WAL 模式**: SQLite 启用 WAL 提高并发性能
 3. **外键约束**: 启用 `foreign_keys = ON`
-4. **LanceDB**: Phase 1 使用简化实现，Sprint 5 将完善向量搜索
+4. **LanceDB**: Phase 1 使用简化实现
+   - ⚠️ **已知限制**: `where()` 查询暂未实现（LanceDB Rust SDK 限制）
+   - 将在 Sprint 5 RAG Pipeline 中解决
+   - 当前 `getChunksByDocId` 使用全表扫描替代
 
 ## 下一步
 
