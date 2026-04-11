@@ -16,7 +16,7 @@
     "@larksuiteoapi/node-sdk": "^1.5.0",
     "better-sqlite3": "^12.0.0",
     "hono": "^4.0.0",
-    "lancedb": "^0.0.1",
+    "@lancedb/lancedb": "^0.27.0",
     "@langchain/core": "^0.1.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
