@@ -3,10 +3,20 @@ import { verifyFeishuSignature } from '../feishu/validator';
 import { FeishuMessageEvent, ParsedMessage } from '../types/message';
 
 export type MessageHandler = (parsed: ParsedMessage) => void | Promise<void>;
+export type CardActionHandler = (action: CardAction) => void | Promise<void>;
+
+export interface CardAction {
+  actionId: string;
+  actionValue: Record<string, any>;
+  messageId: string;
+  chatId: string;
+  openId: string;
+}
 
 export class CallbackRouter {
   private app: Hono;
   private messageHandlers: Set<MessageHandler> = new Set();
+  private cardActionHandlers: Set<CardActionHandler> = new Set();
 
   constructor() {
     this.app = new Hono();
@@ -24,12 +34,17 @@ export class CallbackRouter {
         return c.json({ code: 401, msg: 'Unauthorized' }, 401);
       }
 
-      let event: FeishuMessageEvent;
+      let event: any;
       try {
         event = JSON.parse(body);
       } catch {
         console.error('[Callback] Failed to parse event body');
         return c.json({ code: 400, msg: 'Bad Request' }, 400);
+      }
+
+      if (this.isCardActionEvent(event)) {
+        this.handleCardAction(event);
+        return c.json({ code: 0, msg: 'success' });
       }
 
       if (!this.isMessageEvent(event)) {
@@ -53,6 +68,28 @@ export class CallbackRouter {
     });
 
     this.app.get('/health', (c) => c.json({ status: 'ok' }));
+  }
+
+  private isCardActionEvent(event: any): boolean {
+    return event.event_type === 'im.card.action.trigger';
+  }
+
+  private handleCardAction(event: any): void {
+    const action: CardAction = {
+      actionId: event.action?.action_id || event.action_id || '',
+      actionValue: event.action?.value || event.action_value || {},
+      messageId: event.message?.message_id || event.message_id || '',
+      chatId: event.message?.chat_id || event.chat_id || '',
+      openId: event.sender?.sender_id?.open_id || event.open_id || '',
+    };
+    console.log(`[Callback] Card action: ${action.actionId}`);
+    this.cardActionHandlers.forEach((handler) => {
+      try {
+        handler(action);
+      } catch (e) {
+        console.error('[Callback] Card action handler error:', e);
+      }
+    });
   }
 
   private isMessageEvent(event: FeishuMessageEvent): boolean {
@@ -126,6 +163,14 @@ export class CallbackRouter {
 
   offMessage(handler: MessageHandler): void {
     this.messageHandlers.delete(handler);
+  }
+
+  onCardAction(handler: CardActionHandler): void {
+    this.cardActionHandlers.add(handler);
+  }
+
+  offCardAction(handler: CardActionHandler): void {
+    this.cardActionHandlers.delete(handler);
   }
 
   getApp(): Hono {
