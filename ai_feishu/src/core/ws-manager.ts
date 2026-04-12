@@ -97,27 +97,34 @@ export class FeishuWSManager {
       return;
     }
 
-    // 创建 API Client（用于发送消息等 API 调用）
-    this.client = new Client({
-      appId: this.config.appId,
-      appSecret: this.config.appSecret,
-      loggerLevel: this.config.loggerLevel,
-    });
+    try {
+      // 创建 API Client（用于发送消息等 API 调用）
+      this.client = new Client({
+        appId: this.config.appId,
+        appSecret: this.config.appSecret,
+        loggerLevel: this.config.loggerLevel,
+      });
 
-    // 创建 WSClient（官方方式）
-    this.wsClient = new WSClient({
-      appId: this.config.appId,
-      appSecret: this.config.appSecret,
-      loggerLevel: this.config.loggerLevel,
-    });
+      // 创建 WSClient（官方方式）
+      this.wsClient = new WSClient({
+        appId: this.config.appId,
+        appSecret: this.config.appSecret,
+        loggerLevel: this.config.loggerLevel,
+      });
 
-    // 官方方式：start 时传入已注册好 handler 的 eventDispatcher
-    this.wsClient.start({
-      eventDispatcher: this.eventDispatcher,
-    });
+      // 官方方式：start 时传入已注册好 handler 的 eventDispatcher
+      this.wsClient.start({
+        eventDispatcher: this.eventDispatcher,
+      });
 
-    this.hasStarted = true;
-    console.info('[FeishuWS] WebSocket started');
+      this.hasStarted = true;
+      console.info('[FeishuWS] WebSocket started');
+    } catch (error) {
+      // 清理已创建的资源，防止部分初始化状态
+      this.wsClient = null;
+      this.client = null;
+      throw new Error(`[FeishuWS] Failed to start: ${error}`);
+    }
   }
 
   /**
