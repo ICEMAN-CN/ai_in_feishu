@@ -12,6 +12,7 @@
     "init-db": "tsx scripts/init-db.ts"
   },
   "dependencies": {
+    "@hono/node-server": "^1.19.13",
     "@lancedb/lancedb": "^0.27.0",
     "@langchain/core": "^0.1.0",
     "@larksuiteoapi/node-sdk": "^1.5.0",

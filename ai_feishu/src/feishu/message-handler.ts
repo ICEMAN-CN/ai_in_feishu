@@ -40,7 +40,10 @@ export class MessageHandler {
     if (this.processedMessageIds.size > 10000) {
       const iterator = this.processedMessageIds.values();
       for (let i = 0; i < 5000; i++) {
-        this.processedMessageIds.delete(iterator.next().value);
+        const next = iterator.next();
+        if (next.value) {
+          this.processedMessageIds.delete(next.value);
+        }
       }
     }
 
