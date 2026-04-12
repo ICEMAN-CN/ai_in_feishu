@@ -1,3 +1,10 @@
+import {
+  ACTION_ARCHIVE_FULL,
+  ACTION_ARCHIVE_SUMMARY,
+  ACTION_ARCHIVE_ACTION_ITEMS,
+  ACTION_ARCHIVE_CANCEL,
+} from '../constants/action-ids';
+
 export interface CardElement {
   tag: string;
   [key: string]: unknown;
@@ -232,22 +239,22 @@ export class CardBuilder {
                 tag: 'button',
                 text: { tag: 'plain_text', content: '📄 完整归档' },
                 type: 'primary',
-                action_id: 'archive_full',
+                action_id: ACTION_ARCHIVE_FULL,
               },
               {
                 tag: 'button',
                 text: { tag: 'plain_text', content: '📝 摘要归档' },
-                action_id: 'archive_summary',
+                action_id: ACTION_ARCHIVE_SUMMARY,
               },
               {
                 tag: 'button',
                 text: { tag: 'plain_text', content: '📋 行动项归档' },
-                action_id: 'archive_action_items',
+                action_id: ACTION_ARCHIVE_ACTION_ITEMS,
               },
               {
                 tag: 'button',
                 text: { tag: 'plain_text', content: '❌ 取消' },
-                action_id: 'archive_cancel',
+                action_id: ACTION_ARCHIVE_CANCEL,
               },
             ],
           },

@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { verifyFeishuSignature } from '../feishu/validator';
+import { MessageHandler as FeishuMessageHandler } from '../feishu/message-handler';
 import { FeishuMessageEvent, ParsedMessage } from '../types/message';
 
 export type MessageHandler = (parsed: ParsedMessage) => void | Promise<void>;
@@ -17,9 +18,11 @@ export class CallbackRouter {
   private app: Hono;
   private messageHandlers: Set<MessageHandler> = new Set();
   private cardActionHandlers: Set<CardActionHandler> = new Set();
+  private messageHandler: FeishuMessageHandler;
 
   constructor() {
     this.app = new Hono();
+    this.messageHandler = new FeishuMessageHandler();
     this.setupRoutes();
   }
 
@@ -51,7 +54,7 @@ export class CallbackRouter {
         return c.json({ code: 0, msg: 'success' });
       }
 
-      const parsed = this.parseMessage(event);
+      const parsed = this.messageHandler.parseMessage(event);
 
       if (parsed.senderType === 'bot') {
         return c.json({ code: 0, msg: 'success' });
@@ -95,34 +98,6 @@ export class CallbackRouter {
   private isMessageEvent(event: FeishuMessageEvent): boolean {
     const eventType = event.event_type || event.header?.event_type;
     return eventType === 'im.message.receive_v1';
-  }
-
-  private parseMessage(event: FeishuMessageEvent): ParsedMessage {
-    const eventId = event.event_id || event.header?.event_id || '';
-    const timestamp = event.create_time || event.header?.create_time || '';
-    const message = event.message || event.event?.message;
-    const sender = event.event?.sender;
-
-    let content: unknown;
-    try {
-      content = JSON.parse(message?.content || '{}');
-    } catch {
-      content = { text: message?.content || '' };
-    }
-
-    return {
-      eventId,
-      messageId: message?.message_id || '',
-      rootId: message?.root_id || message?.message_id || '',
-      parentId: message?.parent_id || '',
-      chatId: message?.chat_id || '',
-      chatType: message?.chat_type || 'p2p',
-      messageType: message?.message_type || 'text',
-      content,
-      senderOpenId: sender?.id?.open_id || '',
-      senderType: sender?.sender_type || 'user',
-      timestamp,
-    };
   }
 
   private processedMessageIds = new Set<string>();

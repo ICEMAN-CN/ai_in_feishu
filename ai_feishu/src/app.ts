@@ -1,3 +1,4 @@
+import { serve } from '@hono/node-server';
 import { CallbackRouter } from './routers/callback';
 import { FeishuWSManager } from './core/ws-manager';
 import { MessageHandler } from './feishu/message-handler';
@@ -81,6 +82,13 @@ export class AIFeishuApp {
   private startCallbackServer(): void {
     const { callbackPort } = this.config;
     console.log(`[App] Callback server starting on port ${callbackPort}...`);
+
+    serve({
+      fetch: this.callbackRouter.getApp().fetch,
+      port: callbackPort,
+    });
+
+    console.log(`[App] Callback server running at http://localhost:${callbackPort}`);
   }
 
   stop(): void {

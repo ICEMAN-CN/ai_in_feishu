@@ -13,7 +13,7 @@ const FEISHU_BOT_NAME = process.env.FEISHU_BOT_NAME || 'AI_Feishu';
 export interface FeishuConfig {
   appId: string;
   appSecret: string;
-  botName: string;
+  botName?: string;
 }
 
 let feishuClient: Client | null = null;
@@ -24,7 +24,6 @@ let feishuClient: Client | null = null;
 export function createFeishuClient(config?: FeishuConfig): Client {
   const appId = (config?.appId || FEISHU_APP_ID)?.trim();
   const appSecret = (config?.appSecret || FEISHU_APP_SECRET)?.trim();
-  const botName = config?.botName || FEISHU_BOT_NAME;
 
   if (!appId || !appSecret) {
     throw new Error(
