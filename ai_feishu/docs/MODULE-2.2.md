@@ -1,7 +1,7 @@
 # Module 2.2: 消息接收与解析
 
 **所属 Sprint**: Sprint 2 - 飞书消息通道  
-**状态**: ✅ 已完成  
+**状态**: ✅ 已完成（联调验证通过）  
 **文件**: `src/types/message.ts`, `src/feishu/message-handler.ts`  
 **测试**: `tests/message-handler.test.ts`
 
@@ -15,23 +15,39 @@
 
 | 方法 | 说明 |
 |------|------|
-| `parseMessage(event)` | 将 FeishuMessageEvent 解析为 ParsedMessage |
+| `parseMessage(event)` | 将 Feishu SDK 原始事件解析为 ParsedMessage |
 | `isDuplicate(messageId)` | 检查消息是否重复（基于 message_id） |
 | `isTextMessage(parsed)` | 判断是否为文本消息 |
 | `isInteractiveMessage(parsed)` | 判断是否为卡片消息 |
 | `extractTextContent(parsed)` | 从消息中提取文本内容 |
 
-## 3. 类型定义
+## 3. 实际 SDK 消息格式
 
-### FeishuMessageEvent (飞书SDK原始类型)
+飞书 SDK 实际发送的消息格式：
 
 ```typescript
 interface FeishuMessageEvent {
-  header: FeishuMessageHeader;
-  event: {
-    sender: FeishuMessageSender;
-    receiver: { receiver_id: { open_id: string }; receiver_type: 'user' | 'bot' };
-    message: FeishuMessage;
+  schema: '2.0';
+  event_id: string;
+  event_type: 'im.message.receive_v1';
+  create_time: string;
+  token: string;
+  tenant_key: string;
+  app_id: string;
+  message: {
+    message_id: string;
+    root_id?: string;
+    parent_id?: string;
+    chat_id: string;
+    chat_type: 'p2p' | 'group';
+    message_type: 'text' | 'post' | 'interactive';
+    content: string;  // JSON string
+  };
+  event?: {
+    sender?: {
+      id?: { open_id: string };
+      sender_type?: 'user' | 'bot';
+    };
   };
 }
 ```
@@ -40,17 +56,17 @@ interface FeishuMessageEvent {
 
 ```typescript
 interface ParsedMessage {
-  eventId: string;           // 事件ID
-  messageId: string;        // 消息ID
-  rootId: string;            // Thread根消息ID
-  parentId: string;          // 父消息ID
-  chatId: string;           // 会话ID
-  chatType: 'p2p' | 'group'; // 会话类型
-  messageType: 'text' | 'post' | 'interactive'; // 消息类型
-  content: unknown;          // 解析后的消息内容
-  senderOpenId: string;       // 发送者OpenID
-  senderType: 'user' | 'bot'; // 发送者类型
-  timestamp: string;         // 时间戳
+  eventId: string;
+  messageId: string;
+  rootId: string;
+  parentId: string;
+  chatId: string;
+  chatType: 'p2p' | 'group';
+  messageType: 'text' | 'post' | 'interactive';
+  content: unknown;
+  senderOpenId: string;
+  senderType: 'user' | 'bot';
+  timestamp: string;
 }
 ```
 
@@ -65,13 +81,11 @@ const handler = new MessageHandler();
 wsManager.registerHandler('im.message.receive_v1', async (data) => {
   const parsed = handler.parseMessage(data);
   
-  // 检查重复
   if (handler.isDuplicate(parsed.messageId)) {
     console.log('Duplicate message, skipping');
     return;
   }
   
-  // 根据消息类型处理
   if (handler.isTextMessage(parsed)) {
     const text = handler.extractTextContent(parsed);
     console.log('Text message:', text);
@@ -85,7 +99,21 @@ wsManager.registerHandler('im.message.receive_v1', async (data) => {
 - 超过 10000 条后自动清理一半旧数据
 - 防止内存无限增长
 
-## 6. 测试覆盖
+## 6. 联调验证
+
+```bash
+FEISHU_APP_ID=xxx FEISHU_APP_SECRET=xxx npx tsx scripts/test-integration.ts
+```
+
+**验证结果**：
+- WebSocket 长连接建立成功
+- 消息接收正常
+- 消息解析正常
+- 文本内容提取正常
+
+**注意**：`senderOpenId` 为空是因为飞书应用默认不返回发送者信息，需要在飞书后台配置相关权限。
+
+## 7. 测试覆盖
 
 | 测试项 | 状态 |
 |--------|------|
@@ -102,7 +130,7 @@ wsManager.registerHandler('im.message.receive_v1', async (data) => {
 
 **总测试数**: 15
 
-## 7. 相关文档
+## 8. 相关文档
 
 - Sprint 2 规划: `docs/sprints/Sprint-02-飞书消息通道.md`
 - Module 2.1: `docs/MODULE-2.1.md`

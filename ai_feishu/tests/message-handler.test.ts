@@ -12,27 +12,24 @@ describe('MessageHandler', () => {
   describe('parseMessage()', () => {
     it('should parse text message event correctly', () => {
       const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_123',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
+        event_id: 'evt_123',
+        event_type: 'im.message.receive_v1',
+        create_time: '1775978207392',
+        token: 'test_token',
+        tenant_key: 'tenant_abc',
+        app_id: 'app_123',
+        message: {
+          message_id: 'msg_001',
+          root_id: '',
+          parent_id: '',
+          create_time: '1775978207065',
+          chat_id: 'chat_123',
+          chat_type: 'p2p',
+          message_type: 'text',
+          content: '{"text":"Hello World"}',
         },
         event: {
-          sender: { sender_id: { open_id: 'user_456' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_789' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_001',
-            root_id: '',
-            parent_id: '',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_123',
-            chat_type: 'p2p',
-            message_type: 'text',
-            content: '{"text":"Hello World"}',
-          },
+          sender: { id: { open_id: 'user_456' }, sender_type: 'user' },
         },
       };
 
@@ -48,32 +45,19 @@ describe('MessageHandler', () => {
       expect(parsed.content).toEqual({ text: 'Hello World' });
       expect(parsed.senderOpenId).toBe('user_456');
       expect(parsed.senderType).toBe('user');
-      expect(parsed.timestamp).toBe('2024-01-01T12:00:00Z');
+      expect(parsed.timestamp).toBe('1775978207392');
     });
 
     it('should use message_id as rootId when root_id is empty', () => {
       const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_123',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
-        },
-        event: {
-          sender: { sender_id: { open_id: 'user_456' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_789' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_001',
-            root_id: '',
-            parent_id: '',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_123',
-            chat_type: 'p2p',
-            message_type: 'text',
-            content: '{"text":"test"}',
-          },
+        event_id: 'evt_123',
+        message: {
+          message_id: 'msg_001',
+          root_id: '',
+          chat_id: 'chat_123',
+          chat_type: 'p2p',
+          message_type: 'text',
+          content: '{"text":"test"}',
         },
       };
 
@@ -83,27 +67,15 @@ describe('MessageHandler', () => {
 
     it('should use existing root_id when provided', () => {
       const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_123',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
-        },
-        event: {
-          sender: { sender_id: { open_id: 'user_456' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_789' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_002',
-            root_id: 'msg_001',
-            parent_id: 'msg_001',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_123',
-            chat_type: 'group',
-            message_type: 'text',
-            content: '{"text":"reply"}',
-          },
+        event_id: 'evt_123',
+        message: {
+          message_id: 'msg_002',
+          root_id: 'msg_001',
+          parent_id: 'msg_001',
+          chat_id: 'chat_123',
+          chat_type: 'group',
+          message_type: 'text',
+          content: '{"text":"reply"}',
         },
       };
 
@@ -114,27 +86,13 @@ describe('MessageHandler', () => {
 
     it('should parse invalid JSON content gracefully', () => {
       const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_123',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
-        },
-        event: {
-          sender: { sender_id: { open_id: 'user_456' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_789' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_001',
-            root_id: '',
-            parent_id: '',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_123',
-            chat_type: 'p2p',
-            message_type: 'text',
-            content: 'not valid json',
-          },
+        event_id: 'evt_123',
+        message: {
+          message_id: 'msg_001',
+          chat_id: 'chat_123',
+          chat_type: 'p2p',
+          message_type: 'text',
+          content: 'not valid json',
         },
       };
 
@@ -144,27 +102,14 @@ describe('MessageHandler', () => {
 
     it('should parse interactive message correctly', () => {
       const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_456',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
-        },
-        event: {
-          sender: { sender_id: { open_id: 'user_789' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_123' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_003',
-            root_id: 'msg_003',
-            parent_id: '',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_456',
-            chat_type: 'group',
-            message_type: 'interactive',
-            content: '{"card":"interactive_card_content"}',
-          },
+        event_id: 'evt_456',
+        message: {
+          message_id: 'msg_003',
+          root_id: 'msg_003',
+          chat_id: 'chat_456',
+          chat_type: 'group',
+          message_type: 'interactive',
+          content: '{"card":"interactive_card_content"}',
         },
       };
 
@@ -203,186 +148,96 @@ describe('MessageHandler', () => {
 
   describe('isTextMessage()', () => {
     it('should return true for text message', () => {
-      const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_123',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
+      const parsed = handler.parseMessage({
+        event_id: 'evt_123',
+        message: {
+          message_id: 'msg_001',
+          chat_id: 'chat_123',
+          chat_type: 'p2p',
+          message_type: 'text',
+          content: '{"text":"hello"}',
         },
-        event: {
-          sender: { sender_id: { open_id: 'user_456' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_789' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_001',
-            root_id: '',
-            parent_id: '',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_123',
-            chat_type: 'p2p',
-            message_type: 'text',
-            content: '{"text":"hello"}',
-          },
-        },
-      };
+      });
 
-      const parsed = handler.parseMessage(event);
       expect(handler.isTextMessage(parsed)).toBe(true);
     });
 
     it('should return false for interactive message', () => {
-      const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_123',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
+      const parsed = handler.parseMessage({
+        event_id: 'evt_123',
+        message: {
+          message_id: 'msg_001',
+          chat_id: 'chat_123',
+          chat_type: 'p2p',
+          message_type: 'interactive',
+          content: '{}',
         },
-        event: {
-          sender: { sender_id: { open_id: 'user_456' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_789' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_001',
-            root_id: '',
-            parent_id: '',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_123',
-            chat_type: 'p2p',
-            message_type: 'interactive',
-            content: '{}',
-          },
-        },
-      };
+      });
 
-      const parsed = handler.parseMessage(event);
       expect(handler.isTextMessage(parsed)).toBe(false);
     });
   });
 
   describe('isInteractiveMessage()', () => {
     it('should return true for interactive message', () => {
-      const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_123',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
+      const parsed = handler.parseMessage({
+        event_id: 'evt_123',
+        message: {
+          message_id: 'msg_001',
+          chat_id: 'chat_123',
+          chat_type: 'p2p',
+          message_type: 'interactive',
+          content: '{}',
         },
-        event: {
-          sender: { sender_id: { open_id: 'user_456' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_789' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_001',
-            root_id: '',
-            parent_id: '',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_123',
-            chat_type: 'p2p',
-            message_type: 'interactive',
-            content: '{}',
-          },
-        },
-      };
+      });
 
-      const parsed = handler.parseMessage(event);
       expect(handler.isInteractiveMessage(parsed)).toBe(true);
     });
 
     it('should return false for text message', () => {
-      const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_123',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
+      const parsed = handler.parseMessage({
+        event_id: 'evt_123',
+        message: {
+          message_id: 'msg_001',
+          chat_id: 'chat_123',
+          chat_type: 'p2p',
+          message_type: 'text',
+          content: '{"text":"hello"}',
         },
-        event: {
-          sender: { sender_id: { open_id: 'user_456' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_789' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_001',
-            root_id: '',
-            parent_id: '',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_123',
-            chat_type: 'p2p',
-            message_type: 'text',
-            content: '{"text":"hello"}',
-          },
-        },
-      };
+      });
 
-      const parsed = handler.parseMessage(event);
       expect(handler.isInteractiveMessage(parsed)).toBe(false);
     });
   });
 
   describe('extractTextContent()', () => {
     it('should extract text from text message', () => {
-      const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_123',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
+      const parsed = handler.parseMessage({
+        event_id: 'evt_123',
+        message: {
+          message_id: 'msg_001',
+          chat_id: 'chat_123',
+          chat_type: 'p2p',
+          message_type: 'text',
+          content: '{"text":"Hello World"}',
         },
-        event: {
-          sender: { sender_id: { open_id: 'user_456' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_789' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_001',
-            root_id: '',
-            parent_id: '',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_123',
-            chat_type: 'p2p',
-            message_type: 'text',
-            content: '{"text":"Hello World"}',
-          },
-        },
-      };
+      });
 
-      const parsed = handler.parseMessage(event);
       expect(handler.extractTextContent(parsed)).toBe('Hello World');
     });
 
     it('should return empty string for non-text message', () => {
-      const event: FeishuMessageEvent = {
-        header: {
-          event_id: 'evt_123',
-          event_type: 'im.message.receive_v1',
-          create_time: '2024-01-01T12:00:00Z',
-          token: 'test_token',
-          app_id: 'app_123',
-          tenant_key: 'tenant_abc',
+      const parsed = handler.parseMessage({
+        event_id: 'evt_123',
+        message: {
+          message_id: 'msg_001',
+          chat_id: 'chat_123',
+          chat_type: 'p2p',
+          message_type: 'interactive',
+          content: '{"card":"data"}',
         },
-        event: {
-          sender: { sender_id: { open_id: 'user_456' }, sender_type: 'user' },
-          receiver: { receiver_id: { open_id: 'bot_789' }, receiver_type: 'bot' },
-          message: {
-            message_id: 'msg_001',
-            root_id: '',
-            parent_id: '',
-            create_time: '2024-01-01T12:00:00Z',
-            chat_id: 'chat_123',
-            chat_type: 'p2p',
-            message_type: 'interactive',
-            content: '{"card":"data"}',
-          },
-        },
-      };
+      });
 
-      const parsed = handler.parseMessage(event);
       expect(handler.extractTextContent(parsed)).toBe('');
     });
   });

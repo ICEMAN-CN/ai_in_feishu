@@ -4,28 +4,30 @@ export class MessageHandler {
   private processedMessageIds = new Set<string>();
 
   parseMessage(event: FeishuMessageEvent): ParsedMessage {
-    const { header, event: eventBody } = event;
-    const { message, sender } = eventBody;
+    const eventId = event.event_id || event.header?.event_id || '';
+    const timestamp = event.create_time || event.header?.create_time || '';
+    const message = event.message || event.event?.message;
+    const sender = event.event?.sender;
 
     let content: unknown;
     try {
-      content = JSON.parse(message.content);
+      content = JSON.parse(message?.content || '{}');
     } catch {
-      content = { text: message.content };
+      content = { text: message?.content || '' };
     }
 
     return {
-      eventId: header.event_id,
-      messageId: message.message_id,
-      rootId: message.root_id || message.message_id,
-      parentId: message.parent_id || '',
-      chatId: message.chat_id,
-      chatType: message.chat_type,
-      messageType: message.message_type,
+      eventId,
+      messageId: message?.message_id || '',
+      rootId: message?.root_id || message?.message_id || '',
+      parentId: message?.parent_id || '',
+      chatId: message?.chat_id || '',
+      chatType: message?.chat_type || 'p2p',
+      messageType: message?.message_type || 'text',
       content,
-      senderOpenId: sender.sender_id.open_id,
-      senderType: sender.sender_type,
-      timestamp: header.create_time,
+      senderOpenId: sender?.id?.open_id || '',
+      senderType: sender?.sender_type || 'user',
+      timestamp,
     };
   }
 
