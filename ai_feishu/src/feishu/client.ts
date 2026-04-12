@@ -22,8 +22,9 @@ let feishuClient: Client | null = null;
  * Create a Feishu SDK client
  */
 export function createFeishuClient(config?: FeishuConfig): Client {
-  const appId = config?.appId || FEISHU_APP_ID;
-  const appSecret = config?.appSecret || FEISHU_APP_SECRET;
+  const appId = (config?.appId || FEISHU_APP_ID)?.trim();
+  const appSecret = (config?.appSecret || FEISHU_APP_SECRET)?.trim();
+  const botName = config?.botName || FEISHU_BOT_NAME;
 
   if (!appId || !appSecret) {
     throw new Error(

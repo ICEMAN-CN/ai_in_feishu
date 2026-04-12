@@ -5,6 +5,7 @@ export class MessageService {
 
   async sendTextMessage(chatId: string, content: string): Promise<string> {
     const response = await this.client.im.v1.message.create({
+      params: { receive_id_type: 'chat_id' },
       data: {
         receive_id: chatId,
         msg_type: 'text',
@@ -18,11 +19,14 @@ export class MessageService {
   }
 
   async sendCardMessage(chatId: string, card: object): Promise<string> {
+    const cardObj = card as { schema?: string; card?: object };
+    const cardContent = cardObj.card || cardObj;
     const response = await this.client.im.v1.message.create({
+      params: { receive_id_type: 'chat_id' },
       data: {
         receive_id: chatId,
         msg_type: 'interactive',
-        content: JSON.stringify(card),
+        content: JSON.stringify(cardContent),
       },
     });
     if (!response.data?.message_id) {
@@ -32,11 +36,13 @@ export class MessageService {
   }
 
   async updateCardMessage(messageId: string, card: object): Promise<void> {
+    const cardObj = card as { schema?: string; card?: object };
+    const cardContent = cardObj.card || cardObj;
     await this.client.im.v1.message.update({
       path: { message_id: messageId },
       data: {
         msg_type: 'interactive',
-        content: JSON.stringify(card),
+        content: JSON.stringify(cardContent),
       },
     });
   }

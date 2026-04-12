@@ -33,6 +33,7 @@ describe('MessageService', () => {
 
       expect(result).toBe('msg_123');
       expect(mockMessageCreate).toHaveBeenCalledWith({
+        params: { receive_id_type: 'chat_id' },
         data: {
           receive_id: 'chat_456',
           msg_type: 'text',
@@ -50,6 +51,7 @@ describe('MessageService', () => {
 
       expect(result).toBe('msg_empty');
       expect(mockMessageCreate).toHaveBeenCalledWith({
+        params: { receive_id_type: 'chat_id' },
         data: {
           receive_id: 'chat_456',
           msg_type: 'text',
@@ -76,15 +78,16 @@ describe('MessageService', () => {
 
       expect(result).toBe('card_msg_789');
       expect(mockMessageCreate).toHaveBeenCalledWith({
+        params: { receive_id_type: 'chat_id' },
         data: {
           receive_id: 'chat_456',
           msg_type: 'interactive',
-          content: JSON.stringify(card),
+          content: JSON.stringify({ elements: [] }),
         },
       });
     });
 
-    it('should send complex card structure', async () => {
+    it('should send card without outer wrapper', async () => {
       const card = {
         schema: '2.0',
         card: {
@@ -100,10 +103,14 @@ describe('MessageService', () => {
 
       expect(result).toBe('complex_card');
       expect(mockMessageCreate).toHaveBeenCalledWith({
+        params: { receive_id_type: 'chat_id' },
         data: {
           receive_id: 'chat_123',
           msg_type: 'interactive',
-          content: JSON.stringify(card),
+          content: JSON.stringify({
+            header: { title: { tag: 'plain_text', content: 'Test' } },
+            elements: [{ tag: 'div', text: { tag: 'lark_md', content: 'Hi' } }],
+          }),
         },
       });
     });
@@ -133,21 +140,29 @@ describe('MessageService', () => {
         path: { message_id: 'msg_123' },
         data: {
           msg_type: 'interactive',
-          content: JSON.stringify(updatedCard),
+          content: JSON.stringify({
+            header: { title: { tag: 'plain_text', content: 'Updated' } },
+            elements: [{ tag: 'div', text: { tag: 'lark_md', content: 'New content' } }],
+          }),
         },
       });
     });
 
-    it('should handle update with empty card', async () => {
+    it('should handle card without outer wrapper', async () => {
       mockMessageUpdate.mockResolvedValue({});
 
-      await service.updateCardMessage('msg_empty', { schema: '2.0', card: { elements: [] } });
+      const card = {
+        header: { title: { tag: 'plain_text', content: 'Updated' } },
+        elements: [{ tag: 'div', text: { tag: 'lark_md', content: 'New content' } }],
+      };
+
+      await service.updateCardMessage('msg_456', card);
 
       expect(mockMessageUpdate).toHaveBeenCalledWith({
-        path: { message_id: 'msg_empty' },
+        path: { message_id: 'msg_456' },
         data: {
           msg_type: 'interactive',
-          content: JSON.stringify({ schema: '2.0', card: { elements: [] } }),
+          content: JSON.stringify(card),
         },
       });
     });
