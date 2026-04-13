@@ -12,6 +12,9 @@
     "init-db": "tsx scripts/init-db.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.69",
+    "@ai-sdk/google": "^3.0.62",
+    "@ai-sdk/openai": "^3.0.52",
     "@hono/node-server": "^1.19.13",
     "@lancedb/lancedb": "^0.27.0",
     "@langchain/core": "^0.1.0",
