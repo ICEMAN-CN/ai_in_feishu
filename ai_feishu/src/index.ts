@@ -74,7 +74,7 @@ callbackRouter.onMessage(async (parsed) => {
       parsed.parentId
     );
 
-    if (!session.modelId) {
+    if (!session) {
       const enabledModels = getEnabledModels();
       const modelOptions = enabledModels.map((m) => ({
         label: m.name,

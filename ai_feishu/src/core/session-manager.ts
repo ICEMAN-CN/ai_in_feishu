@@ -12,7 +12,7 @@ export class SessionManager {
     rootId?: string,
     parentId?: string,
     modelId?: string
-  ): Promise<Session> {
+  ): Promise<Session | null> {
     if (!parentId || parentId === rootId) {
       const threadId = rootId || uuidv4();
 
@@ -21,11 +21,16 @@ export class SessionManager {
         return existing;
       }
 
+      const resolvedModelId = modelId || this.getDefaultModelId();
+      if (!resolvedModelId) {
+        return null;
+      }
+
       const session: Session = {
         id: uuidv4(),
         threadId,
         p2pId,
-        modelId: modelId || this.getDefaultModelId() || '',
+        modelId: resolvedModelId,
         systemPrompt: '',
         messageCount: 0,
         messageLimit: THREAD_MESSAGE_LIMIT,
