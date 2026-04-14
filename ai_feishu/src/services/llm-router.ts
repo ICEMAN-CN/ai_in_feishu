@@ -1,7 +1,7 @@
 import { generateText, streamText, CoreMessage } from 'ai';
-import { openai as createOpenAI } from '@ai-sdk/openai';
-import { anthropic as createAnthropic } from '@ai-sdk/anthropic';
-import { google as createGoogle } from '@ai-sdk/google';
+import { createOpenAI, type OpenAIProvider } from '@ai-sdk/openai';
+import { createAnthropic, type AnthropicProvider } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI, type GoogleGenerativeAIProvider } from '@ai-sdk/google';
 import { decryptFromStorage } from '../core/encryption';
 import { getEnabledModels } from '../core/config-store';
 
@@ -61,18 +61,18 @@ export class LLMRouter {
     }
   }
 
-  private createProvider(config: ModelProviderConfig): any {
+  private createProvider(config: ModelProviderConfig): OpenAIProvider | AnthropicProvider | GoogleGenerativeAIProvider {
     const { provider, apiKey, baseUrl } = config;
 
     switch (provider) {
       case 'openai':
-        return (createOpenAI as any)({ apiKey, baseURL: baseUrl });
+        return createOpenAI({ apiKey, baseURL: baseUrl });
       case 'anthropic':
-        return (createAnthropic as any)({ apiKey });
+        return createAnthropic({ apiKey });
       case 'google':
-        return (createGoogle as any)({ apiKey });
+        return createGoogleGenerativeAI({ apiKey });
       case 'ollama':
-        return (createOpenAI as any)({ apiKey: '', baseURL: baseUrl });
+        return createOpenAI({ apiKey: '', baseURL: baseUrl });
       default:
         throw new Error(`Unknown provider: ${provider}`);
     }
