@@ -2,6 +2,7 @@ import { LLMRouter } from './llm-router';
 import { SessionManager } from '../core/session-manager';
 import { MessageService } from '../feishu/message-service';
 import { CardBuilder } from '../feishu/card-builder';
+import { contextManager } from './context-manager';
 
 export interface StreamingHandlerConfig {
   updateIntervalMs: number;
@@ -40,7 +41,8 @@ export class StreamingHandler {
     const initialCard = CardBuilder.streamingCard(modelName, '正在思考...');
     const messageId = await this.messageService.sendCardMessage(chatId, initialCard);
 
-    const messages = [{ role: 'user' as const, content: userMessage }];
+    const truncatedMessage = contextManager.truncateMessage(userMessage);
+    const messages = [{ role: 'user' as const, content: truncatedMessage }];
     let fullResponse = '';
     let lastUpdateTime = 0;
 
