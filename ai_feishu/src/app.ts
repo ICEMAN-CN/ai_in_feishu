@@ -5,6 +5,7 @@ import { MessageHandler } from './feishu/message-handler';
 import { createFeishuClient } from './feishu/client';
 import { CardBuilder } from './feishu/card-builder';
 import { MessageService } from './feishu/message-service';
+import { getEnabledModels } from './core/config-store';
 
 const FEISHU_APP_ID = process.env.FEISHU_APP_ID || '';
 const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET || '';
@@ -69,10 +70,22 @@ export class AIFeishuApp {
         this.messageService = new MessageService(client);
       }
 
-      const responseCard = CardBuilder.sessionStarterCard([
-        { label: 'GPT-4', value: 'gpt4' },
-        { label: 'Claude', value: 'claude' },
-      ]);
+      const enabledModels = getEnabledModels();
+      const modelOptions = enabledModels.map((m) => ({
+        label: m.name,
+        value: m.id,
+      }));
+
+      if (modelOptions.length === 0) {
+        const errorCard = CardBuilder.new()
+          .header('⚠️ 无可用模型', 'orange')
+          .div('当前没有启用的AI模型，请先在管理界面添加模型')
+          .build();
+        await this.messageService.sendCardMessage(parsed.chatId, errorCard);
+        return;
+      }
+
+      const responseCard = CardBuilder.sessionStarterCard(modelOptions);
       await this.messageService.sendCardMessage(parsed.chatId, responseCard);
     });
 

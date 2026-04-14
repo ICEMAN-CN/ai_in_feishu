@@ -7,7 +7,7 @@
 import Database from 'better-sqlite3';
 import { existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
-import { ModelConfig, Session, KBFolder, MCPToolAuth, SystemConfig } from '../types/config.js';
+import { ModelConfig, Session, KBFolder, MCPToolAuth, SystemConfig, ConversationMessage } from '../types/config.js';
 
 const DATA_DIR = process.env.DATA_DIR || './data';
 const SQLITE_PATH = process.env.SQLITE_PATH || `${DATA_DIR}/config.db`;
@@ -97,10 +97,24 @@ export function initDatabase(): Database.Database {
       updated_at TEXT NOT NULL
     );
 
+    -- Messages table for conversation history
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+      content TEXT NOT NULL,
+      model_id TEXT,
+      message_id TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+    );
+
     -- Indexes
     CREATE INDEX IF NOT EXISTS idx_sessions_thread ON sessions(thread_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_p2p ON sessions(p2p_id);
     CREATE INDEX IF NOT EXISTS idx_kb_folders_token ON kb_folders(folder_token);
+    CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
+    CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
   `);
 
   // Record schema version
@@ -392,6 +406,79 @@ export function getAllSystemConfig(): SystemConfig {
     acc[row.key] = row.value;
     return acc;
   }, {} as SystemConfig);
+}
+
+// ==================== Messages ====================
+
+export interface StoredMessage {
+  id: string;
+  sessionId: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  modelId?: string;
+  messageId?: string;
+  createdAt: string;
+}
+
+export function saveMessage(message: ConversationMessage): void {
+  const stmt = getDb().prepare(`
+    INSERT INTO messages (id, session_id, role, content, model_id, message_id, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      content = excluded.content,
+      message_id = excluded.message_id
+  `);
+
+  stmt.run(
+    message.id,
+    message.sessionId,
+    message.role,
+    message.content,
+    message.modelId || null,
+    message.messageId || null,
+    message.createdAt
+  );
+}
+
+export function getMessagesBySession(sessionId: string, limit?: number): ConversationMessage[] {
+  let query = 'SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC';
+  if (limit) {
+    query += ` LIMIT ${limit}`;
+  }
+  const rows = getDb().prepare(query).all(sessionId) as any[];
+  return rows.map(mapRowToMessage);
+}
+
+export function deleteMessagesBySession(sessionId: string, keepCount: number = 0): number {
+  if (keepCount <= 0) {
+    const result = getDb().prepare('DELETE FROM messages WHERE session_id = ?').run(sessionId);
+    return result.changes;
+  }
+
+  const toDelete = getDb().prepare(`
+    SELECT id FROM messages 
+    WHERE session_id = ? 
+    ORDER BY created_at ASC 
+    LIMIT (SELECT MAX(0, COUNT(*) - ?) FROM messages WHERE session_id = ?)
+  `).all(sessionId, keepCount, sessionId) as { id: string }[];
+
+  if (toDelete.length === 0) return 0;
+
+  const placeholders = toDelete.map(() => '?').join(',');
+  const result = getDb().prepare(`DELETE FROM messages WHERE id IN (${placeholders})`).run(...toDelete.map(m => m.id));
+  return result.changes;
+}
+
+function mapRowToMessage(row: any): ConversationMessage {
+  return {
+    id: row.id,
+    sessionId: row.session_id,
+    role: row.role as 'user' | 'assistant' | 'system',
+    content: row.content,
+    modelId: row.model_id || undefined,
+    messageId: row.message_id || undefined,
+    createdAt: row.created_at,
+  };
 }
 
 // ==================== Utility ====================

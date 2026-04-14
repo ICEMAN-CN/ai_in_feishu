@@ -3,6 +3,14 @@ import { Hono } from 'hono';
 import { StreamingHandler } from '../src/services/streaming-handler';
 import { contextManager } from '../src/services/context-manager';
 
+vi.mock('../src/core/config-store', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    saveMessage: vi.fn(),
+  };
+});
+
 describe('Integration: 3.3 → 3.4 → 3.5', () => {
   describe('TC-INT-001: Admin API structure validation', () => {
     it('should respond with proper model structure', async () => {
@@ -71,6 +79,8 @@ describe('Integration: 3.3 → 3.4 → 3.5', () => {
           updatedAt: '',
         }),
         updateSessionMessage: vi.fn(),
+        getConversation: vi.fn().mockReturnValue([]),
+        truncateSessionMessages: vi.fn(),
       };
 
       const mockMessageService = {

@@ -44,6 +44,16 @@ export interface Session {
 
 // ==================== Knowledge Base ====================
 
+export interface ConversationMessage {
+  id: string;
+  sessionId: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  modelId?: string;
+  messageId?: string;
+  createdAt: string;
+}
+
 export interface KBFolder {
   id: string;
   name: string;

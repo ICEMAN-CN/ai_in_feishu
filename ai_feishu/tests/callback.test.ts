@@ -1,5 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { createHmac } from 'crypto';
 import { CallbackRouter } from '../src/routers/callback';
+
+const TEST_TOKEN = 'test-verification-token';
+
+function createSignature(body: string, timestamp: string): string {
+  const str = timestamp + body;
+  return createHmac('sha256', TEST_TOKEN).update(str).digest('hex');
+}
 
 const TEST_EVENT_USER = {
   schema: '2.0',
@@ -43,13 +51,23 @@ const TEST_EVENT_BOT = {
 describe('CallbackRouter', () => {
   let router: CallbackRouter;
   let handlerCalled: string[] = [];
+  const originalToken = process.env.FEISHU_VERIFICATION_TOKEN;
 
   beforeEach(() => {
+    process.env.FEISHU_VERIFICATION_TOKEN = TEST_TOKEN;
     router = new CallbackRouter();
     handlerCalled = [];
     router.onMessage((parsed) => {
       handlerCalled.push(parsed.messageId);
     });
+  });
+
+  afterEach(() => {
+    if (originalToken !== undefined) {
+      process.env.FEISHU_VERIFICATION_TOKEN = originalToken;
+    } else {
+      delete process.env.FEISHU_VERIFICATION_TOKEN;
+    }
   });
 
   describe('GET /health', () => {
@@ -64,12 +82,13 @@ describe('CallbackRouter', () => {
   describe('POST /feishu', () => {
     it('should return 400 for invalid JSON', async () => {
       const body = 'not valid json';
+      const timestamp = '1234567890';
       const res = await router.getApp().request('/feishu', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Lark-Request-Timestamp': '1234567890',
-          'X-Lark-Request-Signature': 'any',
+          'X-Lark-Request-Timestamp': timestamp,
+          'X-Lark-Request-Signature': createSignature(body, timestamp),
         },
         body,
       });
@@ -79,12 +98,13 @@ describe('CallbackRouter', () => {
     it('should skip non-message events', async () => {
       const event = { event_type: 'im.other_event' };
       const body = JSON.stringify(event);
+      const timestamp = '1234567890';
       const res = await router.getApp().request('/feishu', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Lark-Request-Timestamp': '1234567890',
-          'X-Lark-Request-Signature': 'any',
+          'X-Lark-Request-Timestamp': timestamp,
+          'X-Lark-Request-Signature': createSignature(body, timestamp),
         },
         body,
       });
@@ -96,12 +116,13 @@ describe('CallbackRouter', () => {
 
     it('should skip bot messages', async () => {
       const body = JSON.stringify(TEST_EVENT_BOT);
+      const timestamp = '1234567890';
       const res = await router.getApp().request('/feishu', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Lark-Request-Timestamp': '1234567890',
-          'X-Lark-Request-Signature': 'any',
+          'X-Lark-Request-Timestamp': timestamp,
+          'X-Lark-Request-Signature': createSignature(body, timestamp),
         },
         body,
       });
@@ -113,12 +134,13 @@ describe('CallbackRouter', () => {
 
     it('should emit event for user messages', async () => {
       const body = JSON.stringify(TEST_EVENT_USER);
+      const timestamp = '1234567890';
       const res = await router.getApp().request('/feishu', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Lark-Request-Timestamp': '1234567890',
-          'X-Lark-Request-Signature': 'any',
+          'X-Lark-Request-Timestamp': timestamp,
+          'X-Lark-Request-Signature': createSignature(body, timestamp),
         },
         body,
       });
@@ -130,13 +152,14 @@ describe('CallbackRouter', () => {
 
     it('should skip duplicate messages', async () => {
       const body = JSON.stringify(TEST_EVENT_USER);
+      const timestamp = '1234567890';
 
       const res1 = await router.getApp().request('/feishu', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Lark-Request-Timestamp': '1234567890',
-          'X-Lark-Request-Signature': 'any',
+          'X-Lark-Request-Timestamp': timestamp,
+          'X-Lark-Request-Signature': createSignature(body, timestamp),
         },
         body,
       });
@@ -147,8 +170,8 @@ describe('CallbackRouter', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Lark-Request-Timestamp': '1234567890',
-          'X-Lark-Request-Signature': 'any',
+          'X-Lark-Request-Timestamp': timestamp,
+          'X-Lark-Request-Signature': createSignature(body, timestamp),
         },
         body,
       });

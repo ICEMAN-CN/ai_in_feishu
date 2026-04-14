@@ -6,7 +6,7 @@ import { CardBuilder } from './feishu/card-builder';
 import { MessageService } from './feishu/message-service';
 import { MessageHandler } from './feishu/message-handler';
 import { createFeishuClient } from './feishu/client';
-import { getDb } from './core/config-store';
+import { getDb, getEnabledModels } from './core/config-store';
 import { LLMRouter } from './services/llm-router';
 import { SessionManager } from './core/session-manager';
 import { StreamingHandler } from './services/streaming-handler';
@@ -75,10 +75,22 @@ callbackRouter.onMessage(async (parsed) => {
     );
 
     if (!session.modelId) {
-      const welcomeCard = CardBuilder.sessionStarterCard([
-        { label: 'GPT-4', value: 'gpt4' },
-        { label: 'Claude 3', value: 'claude3' },
-      ]);
+      const enabledModels = getEnabledModels();
+      const modelOptions = enabledModels.map((m) => ({
+        label: m.name,
+        value: m.id,
+      }));
+
+      if (modelOptions.length === 0) {
+        const errorCard = CardBuilder.new()
+          .header('⚠️ 无可用模型', 'orange')
+          .div('当前没有启用的AI模型，请先在管理界面添加模型')
+          .build();
+        await getMessageService().sendCardMessage(parsed.chatId, errorCard);
+        return;
+      }
+
+      const welcomeCard = CardBuilder.sessionStarterCard(modelOptions);
       await getMessageService().sendCardMessage(parsed.chatId, welcomeCard);
       return;
     }

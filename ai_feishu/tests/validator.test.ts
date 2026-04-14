@@ -19,9 +19,9 @@ describe('validator', () => {
         }
       });
 
-      it('should return true when token is not configured', () => {
+      it('should return false when token is not configured (security enforcement)', () => {
         const result = verifyFeishuSignature('{"test":"data"}', '1234567890', 'invalid-signature');
-        expect(result).toBe(true);
+        expect(result).toBe(false);
       });
     });
 

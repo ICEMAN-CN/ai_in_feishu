@@ -11,7 +11,9 @@ export function verifyFeishuSignature(
 ): boolean {
   const token = getVerificationToken();
   if (!token) {
-    return true;
+    // Token not configured - reject verification to enforce security
+    console.warn('[Validator] FEISHU_VERIFICATION_TOKEN not set - signature verification disabled');
+    return false;
   }
 
   const str = timestamp + body;

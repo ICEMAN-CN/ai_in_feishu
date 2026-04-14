@@ -1,8 +1,10 @@
+import { v4 as uuidv4 } from 'uuid';
 import { LLMRouter } from './llm-router';
 import { SessionManager } from '../core/session-manager';
 import { MessageService } from '../feishu/message-service';
 import { CardBuilder } from '../feishu/card-builder';
-import { contextManager } from './context-manager';
+import { contextManager, Message } from './context-manager';
+import { saveMessage } from '../core/config-store';
 
 export interface StreamingHandlerConfig {
   updateIntervalMs: number;
@@ -39,31 +41,60 @@ export class StreamingHandler {
     this.currentModelName = modelName;
 
     const initialCard = CardBuilder.streamingCard(modelName, '正在思考...');
-    const messageId = await this.messageService.sendCardMessage(chatId, initialCard);
+    const feishuMessageId = await this.messageService.sendCardMessage(chatId, initialCard);
 
-    const truncatedMessage = contextManager.truncateMessage(userMessage);
-    const messages = [{ role: 'user' as const, content: truncatedMessage }];
+    const truncatedUserMessage = contextManager.truncateMessage(userMessage);
+
+    const conversationHistory = this.sessionManager.getConversation(session.id);
+    const truncatedHistory = contextManager.truncateHistory(conversationHistory, session.messageLimit);
+
+    const userMsg: Message = { role: 'user', content: truncatedUserMessage };
+    const allMessages: Message[] = [...truncatedHistory, userMsg];
+
+    saveMessage({
+      id: uuidv4(),
+      sessionId: session.id,
+      role: 'user',
+      content: truncatedUserMessage,
+      modelId: session.modelId,
+      messageId: feishuMessageId,
+      createdAt: new Date().toISOString(),
+    });
+
+    if (conversationHistory.length > session.messageLimit) {
+      this.sessionManager.truncateSessionMessages(session.id);
+    }
+
     let fullResponse = '';
     let lastUpdateTime = 0;
 
     try {
       for await (const textDelta of this.llmRouter.streamGenerate(
         session.modelId,
-        messages,
+        allMessages,
         session.systemPrompt
       )) {
         fullResponse += textDelta;
 
         const now = Date.now();
         if (now - lastUpdateTime >= this.config.updateIntervalMs) {
-          await this.updateCardWithCursor(messageId, fullResponse);
+          await this.updateCardWithCursor(feishuMessageId, fullResponse);
           lastUpdateTime = now;
         }
       }
 
-      await this.finalizeCard(messageId, fullResponse);
+      await this.finalizeCard(feishuMessageId, fullResponse);
+
+      saveMessage({
+        id: uuidv4(),
+        sessionId: session.id,
+        role: 'assistant',
+        content: fullResponse,
+        modelId: session.modelId,
+        createdAt: new Date().toISOString(),
+      });
     } catch (error) {
-      await this.sendErrorCard(messageId, error instanceof Error ? error.message : String(error));
+      await this.sendErrorCard(feishuMessageId, error instanceof Error ? error.message : String(error));
       throw error;
     }
 

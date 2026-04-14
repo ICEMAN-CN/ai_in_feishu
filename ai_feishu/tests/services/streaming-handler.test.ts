@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { StreamingHandler } from '../../src/services/streaming-handler';
 
+vi.mock('../../src/core/config-store', () => ({
+  saveMessage: vi.fn(),
+}));
+
 const mockLLMRouter = {
   getModelName: vi.fn(),
   streamGenerate: vi.fn(),
@@ -9,6 +13,8 @@ const mockLLMRouter = {
 const mockSessionManager = {
   getSessionByThreadId: vi.fn(),
   updateSessionMessage: vi.fn(),
+  getConversation: vi.fn().mockReturnValue([]),
+  truncateSessionMessages: vi.fn(),
 };
 
 const mockMessageService = {

@@ -4,7 +4,27 @@ import { encryptForStorage } from '../core/encryption';
 import { getAllModels, saveModel, deleteModel, getModel } from '../core/config-store';
 import type { ModelConfig, ModelProvider } from '../types/config';
 
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || '';
+
+async function authMiddleware(c: any, next: () => Promise<void>) {
+  if (!ADMIN_API_KEY) {
+    console.warn('[Admin API] ADMIN_API_KEY not set - authentication disabled');
+    await next();
+    return;
+  }
+
+  const providedKey = c.req.header('X-Admin-API-Key');
+  if (!providedKey || providedKey !== ADMIN_API_KEY) {
+    c.status(401);
+    c.json({ success: false, message: 'Unauthorized: Invalid or missing API key' });
+    return;
+  }
+
+  await next();
+}
+
 const admin = new Hono();
+admin.use('*', authMiddleware);
 
 interface CreateModelBody {
   name: string;

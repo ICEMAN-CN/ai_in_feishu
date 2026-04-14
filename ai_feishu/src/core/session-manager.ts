@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Session } from '../types/config';
-import { getSession, saveSession as dbSaveSession, getDefaultModel } from './config-store';
+import { Session, ConversationMessage } from '../types/config';
+import { getSession, saveSession as dbSaveSession, getDefaultModel, getMessagesBySession, deleteMessagesBySession, saveMessage } from './config-store';
 
 const THREAD_MESSAGE_LIMIT = parseInt(process.env.THREAD_MESSAGE_LIMIT || '20', 10);
 
@@ -102,10 +102,12 @@ export class SessionManager {
     }
   }
 
-  getConversation(sessionId: string, limit?: number): any[] {
-    return [];
+  getConversation(sessionId: string, limit?: number): ConversationMessage[] {
+    return getMessagesBySession(sessionId, limit);
   }
 
   truncateSessionMessages(sessionId: string): void {
+    const messageLimit = THREAD_MESSAGE_LIMIT;
+    deleteMessagesBySession(sessionId, messageLimit);
   }
 }
