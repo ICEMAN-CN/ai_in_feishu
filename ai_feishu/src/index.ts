@@ -4,7 +4,12 @@ import { CallbackRouter, CardAction } from './routers/callback';
 import adminRouter from './routers/admin';
 import { CardBuilder } from './feishu/card-builder';
 import { MessageService } from './feishu/message-service';
+import { MessageHandler } from './feishu/message-handler';
 import { createFeishuClient } from './feishu/client';
+import { getDb } from './core/config-store';
+import { LLMRouter } from './services/llm-router';
+import { SessionManager } from './core/session-manager';
+import { StreamingHandler } from './services/streaming-handler';
 import {
   ACTION_ARCHIVE_FULL,
   ACTION_ARCHIVE_SUMMARY,
@@ -15,12 +20,19 @@ const PORT = parseInt(process.env.CALLBACK_PORT || '3000', 10);
 
 const app = new Hono();
 const callbackRouter = new CallbackRouter();
-let messageService: MessageService;
+const messageHandler = new MessageHandler();
 
 app.route('/feishu', callbackRouter.getApp());
 app.route('/api/admin', adminRouter);
 
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+const db = getDb();
+const llmRouter = new LLMRouter();
+const sessionManager = new SessionManager(db);
+
+let messageService: MessageService;
+let streamingHandler: StreamingHandler;
 
 function getMessageService(): MessageService {
   if (!messageService) {
@@ -30,20 +42,59 @@ function getMessageService(): MessageService {
   return messageService;
 }
 
+function getStreamingHandler(): StreamingHandler {
+  if (!streamingHandler) {
+    streamingHandler = new StreamingHandler(
+      llmRouter,
+      sessionManager,
+      getMessageService()
+    );
+  }
+  return streamingHandler;
+}
+
 callbackRouter.onMessage(async (parsed) => {
   console.log(`[Server] Message received: ${parsed.messageId} from ${parsed.senderOpenId} in ${parsed.chatId}`);
 
-  const welcomeCard = CardBuilder.sessionStarterCard([
-    { label: 'GPT-4', value: 'gpt4' },
-    { label: 'Claude 3', value: 'claude3' },
-    { label: 'MiniMax', value: 'minimax' },
-  ]);
+  if (parsed.messageType !== 'text') {
+    console.log(`[Server] Ignoring non-text message type: ${parsed.messageType}`);
+    return;
+  }
+
+  const textContent = messageHandler.extractTextContent(parsed);
+  if (!textContent) {
+    console.log('[Server] Empty text content, ignoring');
+    return;
+  }
 
   try {
-    const msgId = await getMessageService().sendCardMessage(parsed.chatId, welcomeCard);
-    console.log(`[Server] Sent welcome card: ${msgId}`);
+    const session = await sessionManager.createOrGetSession(
+      parsed.chatId,
+      parsed.rootId,
+      parsed.parentId
+    );
+
+    if (!session.modelId) {
+      const welcomeCard = CardBuilder.sessionStarterCard([
+        { label: 'GPT-4', value: 'gpt4' },
+        { label: 'Claude 3', value: 'claude3' },
+      ]);
+      await getMessageService().sendCardMessage(parsed.chatId, welcomeCard);
+      return;
+    }
+
+    await getStreamingHandler().handleUserMessage(
+      parsed.chatId,
+      parsed.rootId || parsed.messageId,
+      textContent
+    );
   } catch (e) {
-    console.error('[Server] Failed to send card:', e);
+    console.error('[Server] Failed to handle message:', e);
+    const errorCard = CardBuilder.new()
+      .header('❌ 错误', 'red')
+      .div('处理消息失败，请重试')
+      .build();
+    await getMessageService().sendCardMessage(parsed.chatId, errorCard);
   }
 });
 
