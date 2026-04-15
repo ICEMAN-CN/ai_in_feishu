@@ -352,13 +352,24 @@ describe('VectorStoreService', () => {
   });
 
   describe('deleteChunksByDocId', () => {
-    it('should log warning for pending implementation', async () => {
+    it('should delete chunks by docId', async () => {
       const { deleteChunksByDocId, closeVectorStore } = await import('../src/core/vector-store');
 
       await deleteChunksByDocId('doc1');
 
-      // Function currently only logs a warning, no actual deletion
-      expect(mockTable.delete).not.toHaveBeenCalled();
+      expect(mockTable.delete).toHaveBeenCalledWith('doc_id = "doc1"');
+
+      await closeVectorStore();
+    });
+
+    it('should throw error when deletion fails', async () => {
+      mockTable.delete.mockImplementation(() => {
+        throw new Error('Delete failed');
+      });
+
+      const { deleteChunksByDocId, closeVectorStore } = await import('../src/core/vector-store');
+
+      await expect(deleteChunksByDocId('doc1')).rejects.toThrow('Delete failed');
 
       await closeVectorStore();
     });

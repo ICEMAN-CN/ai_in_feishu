@@ -14,6 +14,11 @@ import { getDb, getEnabledModels } from './core/config-store';
 import { LLMRouter } from './services/llm-router';
 import { SessionManager } from './core/session-manager';
 import { StreamingHandler } from './services/streaming-handler';
+import { FeishuDocService } from './services/feishu-doc';
+import { ChunkingService } from './services/chunking';
+import { EmbeddingService } from './services/embedding';
+import { RAGPipeline } from './services/rag-pipeline';
+import { VectorStoreService } from './core/vector-store-service';
 import {
   ACTION_ARCHIVE_FULL,
   ACTION_ARCHIVE_SUMMARY,
@@ -35,7 +40,11 @@ const db = getDb();
 const llmRouter = new LLMRouter();
 const sessionManager = new SessionManager(db);
 const kbFolderManager = new KBFolderManager();
-initKBRouter(kbFolderManager);
+const feishuClient = createFeishuClient();
+const feishuDocService = new FeishuDocService(feishuClient);
+const chunkingService = new ChunkingService();
+const embeddingService = new EmbeddingService();
+const ragPipeline = new RAGPipeline(kbFolderManager, feishuDocService, chunkingService, embeddingService);
 app.route('/api/admin/kb', adminKb);
 
 let messageService: MessageService;

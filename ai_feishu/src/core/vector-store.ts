@@ -192,14 +192,34 @@ export async function getChunksByDocId(docId: string): Promise<SearchResult[]> {
   }
 }
 
-export async function deleteChunksByDocId(_docId: string): Promise<void> {
-  // Note: Full implementation will be done when LanceDB API is stabilized
-  logger.warn('VectorStore', 'deleteChunksByDocId - pending full implementation');
+export async function deleteChunksByDocId(docId: string): Promise<void> {
+  const store = await getVectorStore();
+  try {
+    await store.table.delete(`doc_id = "${docId}"`);
+    logger.debug('VectorStore', `Deleted chunks for docId: ${docId}`);
+  } catch (error) {
+    logger.error('VectorStore', 'deleteChunksByDocId failed:', error);
+    throw error;
+  }
 }
 
 export async function getChunkCount(): Promise<number> {
   const store = await getVectorStore();
   return await store.table.countRows();
+}
+
+export async function getStats(): Promise<{ totalChunks: number; totalDocuments: number; totalFolders: number }> {
+  const store = await getVectorStore();
+  const all = await store.table.query().execute();
+  const chunks = all.length;
+  const docIds = new Set(all.map((r: any) => r.doc_id));
+  const folderIds = new Set(all.map((r: any) => r.folder_id));
+
+  return {
+    totalChunks: chunks,
+    totalDocuments: docIds.size,
+    totalFolders: folderIds.size,
+  };
 }
 
 export async function closeVectorStore(): Promise<void> {
