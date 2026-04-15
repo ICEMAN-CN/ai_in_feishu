@@ -367,7 +367,7 @@ export class FeishuDocService {
 | 项目 | 值 |
 |------|-----|
 | 状态 | ✅ 完成 |
-| Commit | `` |
+| Commit | `07232d9` |
 | 实现文件 | `src/services/feishu-doc.ts` |
 | 测试文件 | `tests/feishu-doc.test.ts` |
 | 测试用例 | TC-5.2-001 ~ TC-5.2-003 (3个) + 边界测试 (11个) = 14个 |
