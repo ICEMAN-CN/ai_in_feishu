@@ -3,6 +3,9 @@ import { Hono } from 'hono';
 import { logger } from './core/logger';
 import { CallbackRouter, CardAction } from './routers/callback';
 import adminRouter from './routers/admin';
+import { initKBRouter } from './routers/admin-kb';
+import adminKb from './routers/admin-kb';
+import { KBFolderManager } from './core/kb-folder-manager';
 import { CardBuilder } from './feishu/card-builder';
 import { MessageService } from './feishu/message-service';
 import { MessageHandler } from './feishu/message-handler';
@@ -31,6 +34,9 @@ app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOStri
 const db = getDb();
 const llmRouter = new LLMRouter();
 const sessionManager = new SessionManager(db);
+const kbFolderManager = new KBFolderManager();
+initKBRouter(kbFolderManager);
+app.route('/api/admin/kb', adminKb);
 
 let messageService: MessageService;
 let streamingHandler: StreamingHandler;
