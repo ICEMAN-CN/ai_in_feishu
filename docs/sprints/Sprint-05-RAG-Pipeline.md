@@ -216,6 +216,17 @@ export default kbRouter;
 | TC-5.1-003 | 删除文件夹 | 删除成功 | 单元测试 |
 | TC-5.1-004 | 获取所有文件夹 | 返回文件夹数组 | curl测试 |
 
+#### 2.1.6 实现状态
+
+| 项目 | 值 |
+|------|-----|
+| 状态 | ✅ 完成 |
+| Commit | `905f6ce` |
+| 实现文件 | `src/core/kb-folder-manager.ts`, `src/routers/admin-kb.ts`, `src/types/kb.ts` |
+| 测试文件 | `tests/kb-folder-manager.test.ts` |
+| 测试用例 | TC-5.1-001 ~ TC-5.1-004 (4个) + parseFolderToken边界测试 (4个) = 10个 |
+| API 端点 | `GET/POST/DELETE /api/admin/kb/folders` |
+
 ---
 
 ### 模块 5.2: 文档拉取服务
