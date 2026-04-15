@@ -577,6 +577,16 @@ export class EmbeddingService {
 | TC-5.4-002 | 批量嵌入 | 返回number[][] | mock测试 |
 | TC-5.4-003 | 维度检查 | 维度=1536 | 单元测试 |
 
+#### 2.4.4 实现状态
+
+| 项目 | 值 |
+|------|-----|
+| 状态 | ✅ 完成 |
+| Commit | `` |
+| 实现文件 | `src/services/embedding.ts` |
+| 测试文件 | `tests/embedding.test.ts` |
+| 测试用例 | TC-5.4-001 ~ TC-5.4-003 (3个) + 边界测试 = 9个 |
+
 ---
 
 ### 模块 5.5: LanceDB向量存储
