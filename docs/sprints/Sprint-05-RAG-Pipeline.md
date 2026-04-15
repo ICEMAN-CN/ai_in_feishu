@@ -459,7 +459,7 @@ export class ChunkingService {
 | 项目 | 值 |
 |------|-----|
 | 状态 | ✅ 完成 |
-| Commit | `` |
+| Commit | `d1aeb32` |
 | 实现文件 | `src/services/chunking.ts` |
 | 测试文件 | `tests/chunking.test.ts` |
 | 测试用例 | TC-5.3-001 ~ TC-5.3-003 (3个) + 边界测试 (18个) = 21个 |
