@@ -1,5 +1,7 @@
 import { EventEmitter } from 'events';
 import { logger } from './logger';
+import { getFeishuClient } from '../feishu/client';
+import { MCPFallbackService } from '../services/mcp-fallback';
 
 /**
  * MCP Client - 连接飞书官方MCP Server的客户端
@@ -401,10 +403,30 @@ export class MCPClient extends EventEmitter {
         return { success: false, error: String(error) };
       }
 
-      return {
-        success: false,
-        error: `Fallback ${tool.fallbackMethod} not implemented: ${error}`,
-      };
+      // Use MCPFallbackService for actual fallback
+      try {
+        const feishuClient = getFeishuClient();
+        const fallbackService = new MCPFallbackService(feishuClient);
+
+        let data: unknown;
+        if (tool.fallbackMethod === 'feishu.docx.document.get') {
+          data = await fallbackService.readDocument(args.document_id as string);
+        } else if (tool.fallbackMethod === 'feishu.docx.document.create') {
+          data = await fallbackService.createDocument(
+            args.parent_token as string,
+            args.title as string,
+            args.content as string
+          );
+        } else if (tool.fallbackMethod === 'feishu.search') {
+          data = await fallbackService.search(args.query as string, args.count as number);
+        } else {
+          return { success: false, error: `Unknown fallback method: ${tool.fallbackMethod}` };
+        }
+
+        return { success: true, data };
+      } catch (fallbackError) {
+        return { success: false, error: String(fallbackError) };
+      }
     }
   }
 }
