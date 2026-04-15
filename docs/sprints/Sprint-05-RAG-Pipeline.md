@@ -582,7 +582,7 @@ export class EmbeddingService {
 | 项目 | 值 |
 |------|-----|
 | 状态 | ✅ 完成 |
-| Commit | `` |
+| Commit | `08ece46` |
 | 实现文件 | `src/services/embedding.ts` |
 | 测试文件 | `tests/embedding.test.ts` |
 | 测试用例 | TC-5.4-001 ~ TC-5.4-003 (3个) + 边界测试 = 9个 |
