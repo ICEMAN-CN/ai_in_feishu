@@ -566,7 +566,7 @@ export class MCPFallbackService {
 
 ---
 
-### 模块 4.4: Admin MCP配置API
+### 模块 4.4: Admin MCP配置API ✅ 完成
 
 **文件路径**: `src/routers/admin-mcp.ts`
 
@@ -650,21 +650,27 @@ export default mcpAdmin;
 
 #### 2.4.2 验收标准
 
-| 验收项 | 验收条件 | 验证方法 |
-|-------|---------|---------|
-| GET /mcp/status | 返回连接状态和降级配置 | curl测试 |
-| GET /mcp/tools | 返回所有工具授权列表 | curl测试 |
-| PUT /mcp/tools/:name | 更新授权状态 | curl测试 |
-| GET /mcp/health | 返回健康状态 | curl测试 |
+| 验收项 | 验收条件 | 验证方法 | 状态 |
+|-------|---------|---------|------|
+| GET /mcp/status | 返回连接状态和降级配置 | curl测试 + 单元测试 | ✅ 完成 |
+| GET /mcp/tools | 返回所有工具授权列表 | curl测试 + 单元测试 | ✅ 完成 |
+| PUT /mcp/tools/:name | 更新授权状态 | curl测试 + 单元测试 | ✅ 完成 |
+| GET /mcp/health | 返回健康状态 | curl测试 + 单元测试 | ✅ 完成 |
 
 #### 2.4.3 测试用例
 
-| 测试编号 | 测试场景 | 预期结果 | 验证方法 |
-|---------|---------|---------|---------|
-| TC-4.4-001 | GET /mcp/status | 返回连接状态 | curl测试 |
-| TC-4.4-002 | GET /mcp/tools | 返回工具列表 | curl测试 |
-| TC-4.4-003 | PUT禁用工具 | 更新授权状态 | curl测试 |
-| TC-4.4-004 | GET /mcp/health | 返回健康状态 | curl测试 |
+| 测试编号 | 测试场景 | 预期结果 | 验证方法 | 状态 |
+|---------|---------|---------|---------|------|
+| TC-4.4-001 | GET /mcp/status | 返回连接状态 | 单元测试 | ✅ 通过 |
+| TC-4.4-002 | GET /mcp/tools | 返回工具列表 | 单元测试 | ✅ 通过 |
+| TC-4.4-003 | PUT禁用工具 | 更新授权状态 | 单元测试 | ✅ 通过 |
+| TC-4.4-004 | GET /mcp/health | 返回健康状态 | 单元测试 | ✅ 通过 |
+
+#### 2.4.4 实现文件
+
+- `src/core/mcp-client.ts` - 新增 `healthCheck()` 方法
+- `src/routers/admin-mcp.ts` - Admin MCP 路由实现
+- `tests/routers/admin-mcp.test.ts` - 单元测试
 
 ---
 

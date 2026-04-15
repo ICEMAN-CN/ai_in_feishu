@@ -242,6 +242,10 @@ export class MCPClient extends EventEmitter {
   isConnected(): boolean {
     return this.state.connected;
   }
+
+  async healthCheck(): Promise<boolean> {
+    return this.state.connected && this.tools.size > 0;
+  }
   
   async loadTools(): Promise<void> {
     try {
