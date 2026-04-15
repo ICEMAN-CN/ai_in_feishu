@@ -4,6 +4,7 @@ import { createAnthropic, type AnthropicProvider } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI, type GoogleGenerativeAIProvider } from '@ai-sdk/google';
 import { decryptFromStorage } from '../core/encryption';
 import { getEnabledModels } from '../core/config-store';
+import { logger } from '../core/logger';
 
 export interface ModelProviderConfig {
   id: string;
@@ -56,7 +57,7 @@ export class LLMRouter {
           this.defaultModelId = model.id;
         }
       } catch (error) {
-        console.error(`Failed to load model ${model.name}:`, error);
+        logger.error('LLMRouter', `Failed to load model ${model.name}:`, error);
       }
     }
   }

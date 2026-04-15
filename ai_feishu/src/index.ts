@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
+import { logger } from './core/logger';
 import { CallbackRouter, CardAction } from './routers/callback';
 import adminRouter from './routers/admin';
 import { CardBuilder } from './feishu/card-builder';
@@ -54,16 +55,16 @@ function getStreamingHandler(): StreamingHandler {
 }
 
 callbackRouter.onMessage(async (parsed) => {
-  console.log(`[Server] Message received: ${parsed.messageId} from ${parsed.senderOpenId} in ${parsed.chatId}`);
+  logger.info('Server', `Message received: ${parsed.messageId} from ${parsed.senderOpenId} in ${parsed.chatId}`);
 
   if (parsed.messageType !== 'text') {
-    console.log(`[Server] Ignoring non-text message type: ${parsed.messageType}`);
+    logger.debug('Server', `Ignoring non-text message type: ${parsed.messageType}`);
     return;
   }
 
   const textContent = messageHandler.extractTextContent(parsed);
   if (!textContent) {
-    console.log('[Server] Empty text content, ignoring');
+    logger.debug('Server', 'Empty text content, ignoring');
     return;
   }
 
@@ -101,7 +102,7 @@ callbackRouter.onMessage(async (parsed) => {
       textContent
     );
   } catch (e) {
-    console.error('[Server] Failed to handle message:', e);
+    logger.error('Server', `Failed to handle message: ${e}`);
     const errorCard = CardBuilder.new()
       .header('❌ 错误', 'red')
       .div('处理消息失败，请重试')
@@ -111,35 +112,35 @@ callbackRouter.onMessage(async (parsed) => {
 });
 
 callbackRouter.onCardAction(async (action: CardAction) => {
-  console.log(`[Server] Card action: ${action.actionId} from ${action.openId} in ${action.chatId}`);
+  logger.info('Server', `Card action: ${action.actionId} from ${action.openId} in ${action.chatId}`);
 
   try {
     if (action.actionId === ACTION_ARCHIVE_FULL) {
-      console.log('[Server] 用户点击了"完整归档"');
+      logger.debug('Server', '用户点击了"完整归档"');
       const responseCard = CardBuilder.new()
         .header('✅ 归档完成', 'green')
         .div('对话已完整归档到飞书文档')
         .build();
       await getMessageService().sendCardMessage(action.chatId, responseCard);
-      console.log('[Server] 归档确认消息已发送');
+      logger.debug('Server', '归档确认消息已发送');
     } else if (action.actionId === ACTION_ARCHIVE_SUMMARY) {
-      console.log('[Server] 用户点击了"摘要归档"');
+      logger.debug('Server', '用户点击了"摘要归档"');
     } else if (action.actionId === ACTION_ARCHIVE_CANCEL) {
-      console.log('[Server] 用户取消了归档');
+      logger.debug('Server', '用户取消了归档');
     }
   } catch (e) {
-    console.error('[Server] Failed to handle card action:', e);
+    logger.error('Server', `Failed to handle card action: ${e}`);
   }
 });
 
-console.log(`🚀 Starting server on port ${PORT}...`);
-console.log(`📡 POST http://localhost:${PORT}/feishu`);
-console.log(`💚 GET  http://localhost:${PORT}/health`);
-console.log(`🔧 GET  http://localhost:${PORT}/api/admin/models`);
+logger.info('Server', `Starting server on port ${PORT}...`);
+logger.info('Server', `POST http://localhost:${PORT}/feishu`);
+logger.info('Server', `GET  http://localhost:${PORT}/health`);
+logger.info('Server', `GET  http://localhost:${PORT}/api/admin/models`);
 
 serve({
   fetch: app.fetch,
   port: PORT,
 });
 
-console.log(`✅ Server running at http://localhost:${PORT}`);
+logger.info('Server', `Server running at http://localhost:${PORT}`);

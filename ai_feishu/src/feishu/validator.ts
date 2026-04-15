@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto';
+import { logger } from '../core/logger';
 
 function getVerificationToken(): string {
   return process.env.FEISHU_VERIFICATION_TOKEN || '';
@@ -12,7 +13,7 @@ export function verifyFeishuSignature(
   const token = getVerificationToken();
   if (!token) {
     // Token not configured - reject verification to enforce security
-    console.warn('[Validator] FEISHU_VERIFICATION_TOKEN not set - signature verification disabled');
+    logger.warn('Validator', 'FEISHU_VERIFICATION_TOKEN not set - signature verification disabled');
     return false;
   }
 

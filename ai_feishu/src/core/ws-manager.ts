@@ -29,6 +29,7 @@
  */
 
 import { WSClient, EventDispatcher, LoggerLevel, Client } from '@larksuiteoapi/node-sdk';
+import { logger } from './logger';
 
 // ==================== Types ====================
 
@@ -93,7 +94,7 @@ export class FeishuWSManager {
    */
   start(): void {
     if (this.hasStarted) {
-      console.warn('[FeishuWS] Already started');
+      logger.warn('FeishuWS', 'Already started');
       return;
     }
 
@@ -118,7 +119,7 @@ export class FeishuWSManager {
       });
 
       this.hasStarted = true;
-      console.info('[FeishuWS] WebSocket started');
+      logger.info('FeishuWS', 'WebSocket started');
     } catch (error) {
       // 清理已创建的资源，防止部分初始化状态
       this.wsClient = null;
@@ -137,7 +138,7 @@ export class FeishuWSManager {
     }
     this.client = null;
     this.hasStarted = false; // 重置状态，允许重新 start
-    console.info('[FeishuWS] WebSocket stopped');
+    logger.info('FeishuWS', 'WebSocket stopped');
   }
 
   /**

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { v4 as uuidv4 } from 'uuid';
 import { encryptForStorage } from '../core/encryption';
+import { logger } from '../core/logger';
 import { getAllModels, saveModel, deleteModel, getModel } from '../core/config-store';
 import type { ModelConfig, ModelProvider } from '../types/config';
 
@@ -8,7 +9,7 @@ const ADMIN_API_KEY = process.env.ADMIN_API_KEY || '';
 
 async function authMiddleware(c: any, next: () => Promise<void>) {
   if (!ADMIN_API_KEY) {
-    console.warn('[Admin API] ADMIN_API_KEY not set - authentication disabled');
+    logger.warn('AdminAPI', 'ADMIN_API_KEY not set - authentication disabled');
     await next();
     return;
   }

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { logger } from '../core/logger';
 import { verifyFeishuSignature } from '../feishu/validator';
 import { MessageHandler as FeishuMessageHandler } from '../feishu/message-handler';
 import { FeishuMessageEvent, ParsedMessage } from '../types/message';
@@ -33,7 +34,7 @@ export class CallbackRouter {
       const signature = c.req.header('X-Lark-Request-Signature') || '';
 
       if (!verifyFeishuSignature(body, timestamp, signature)) {
-        console.warn('[Callback] Invalid signature');
+        logger.warn('Callback', 'Invalid signature');
         return c.json({ code: 401, msg: 'Unauthorized' }, 401);
       }
 
@@ -41,7 +42,7 @@ export class CallbackRouter {
       try {
         event = JSON.parse(body);
       } catch {
-        console.error('[Callback] Failed to parse event body');
+        logger.error('Callback', 'Failed to parse event body');
         return c.json({ code: 400, msg: 'Bad Request' }, 400);
       }
 
@@ -61,7 +62,7 @@ export class CallbackRouter {
       }
 
       if (this.isDuplicate(parsed.messageId)) {
-        console.log(`[Callback] Duplicate message: ${parsed.messageId}`);
+        logger.debug('Callback', `Duplicate message: ${parsed.messageId}`);
         return c.json({ code: 0, msg: 'success' });
       }
 
@@ -85,12 +86,12 @@ export class CallbackRouter {
       chatId: event.message?.chat_id || event.chat_id || '',
       openId: event.sender?.sender_id?.open_id || event.open_id || '',
     };
-    console.log(`[Callback] Card action: ${action.actionId}`);
+    logger.info('Callback', `Card action: ${action.actionId}`);
     this.cardActionHandlers.forEach((handler) => {
       try {
         handler(action);
       } catch (e) {
-        console.error('[Callback] Card action handler error:', e);
+        logger.error('Callback', 'Card action handler error:', e);
       }
     });
   }
@@ -122,12 +123,12 @@ export class CallbackRouter {
   }
 
   private emit(parsed: ParsedMessage): void {
-    console.log(`[Callback] Emitting message event: ${parsed.messageId}`);
+    logger.debug('Callback', `Emitting message event: ${parsed.messageId}`);
     this.messageHandlers.forEach((handler) => {
       try {
         handler(parsed);
       } catch (e) {
-        console.error('[Callback] Handler error:', e);
+        logger.error('Callback', 'Handler error:', e);
       }
     });
   }

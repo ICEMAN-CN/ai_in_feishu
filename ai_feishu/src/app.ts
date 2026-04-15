@@ -6,6 +6,7 @@ import { createFeishuClient } from './feishu/client';
 import { CardBuilder } from './feishu/card-builder';
 import { MessageService } from './feishu/message-service';
 import { getEnabledModels } from './core/config-store';
+import { logger } from './core/logger';
 
 const FEISHU_APP_ID = process.env.FEISHU_APP_ID || '';
 const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET || '';
@@ -52,14 +53,14 @@ export class AIFeishuApp {
         if (this.messageHandler.isDuplicate(event.message?.message_id || '')) {
           return;
         }
-        console.log('[WS] Message received:', event.message?.message_id);
+        logger.debug('App', 'WS Message received:', event.message?.message_id);
       });
 
       this.wsManager.start();
     }
 
     this.callbackRouter.onMessage(async (parsed) => {
-      console.log(`[Callback] Message: ${parsed.messageId} from ${parsed.senderOpenId}`);
+      logger.info('App', `Callback Message: ${parsed.messageId} from ${parsed.senderOpenId}`);
 
       if (!this.messageService) {
         const client = createFeishuClient({
@@ -94,14 +95,14 @@ export class AIFeishuApp {
 
   private startCallbackServer(): void {
     const { callbackPort } = this.config;
-    console.log(`[App] Callback server starting on port ${callbackPort}...`);
+    logger.info('App', `Callback server starting on port ${callbackPort}...`);
 
     serve({
       fetch: this.callbackRouter.getApp().fetch,
       port: callbackPort,
     });
 
-    console.log(`[App] Callback server running at http://localhost:${callbackPort}`);
+    logger.info('App', `Callback server running at http://localhost:${callbackPort}`);
   }
 
   stop(): void {

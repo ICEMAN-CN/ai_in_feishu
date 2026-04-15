@@ -98,7 +98,9 @@ describe('FeishuWSManager', () => {
       manager.start();
       manager.start(); // Second start should warn
 
-      expect(consoleSpy).toHaveBeenCalledWith('[FeishuWS] Already started');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[FeishuWS] Already started')
+      );
       consoleSpy.mockRestore();
     });
   });

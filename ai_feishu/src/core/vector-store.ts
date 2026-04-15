@@ -8,6 +8,7 @@
 
 import { connect } from '@lancedb/lancedb';
 import { existsSync, mkdirSync } from 'fs';
+import { logger } from './logger';
 
 const VECTOR_DB_PATH = process.env.VECTOR_DB_PATH || './data/vectors';
 const EMBEDDING_DIMENSION = parseInt(process.env.EMBEDDING_DIMENSION || '1536');
@@ -52,7 +53,7 @@ export async function initVectorStore(): Promise<VectorStoreInstance> {
   // Ensure directory exists
   if (!existsSync(VECTOR_DB_PATH)) {
     mkdirSync(VECTOR_DB_PATH, { recursive: true });
-    console.log(`[vector-store] Created vector directory: ${VECTOR_DB_PATH}`);
+    logger.info('VectorStore', `Created vector directory: ${VECTOR_DB_PATH}`);
   }
 
   const db = await connect(VECTOR_DB_PATH);
@@ -60,7 +61,7 @@ export async function initVectorStore(): Promise<VectorStoreInstance> {
   // Check if table already exists
   const tableNames = await db.tableNames();
   if (tableNames.includes('document_chunks')) {
-    console.log('[vector-store] Table document_chunks already exists');
+    logger.debug('VectorStore', 'Table document_chunks already exists');
     const table = await db.openTable('document_chunks');
     vectorStore = { table, db };
     return vectorStore;
@@ -85,10 +86,10 @@ export async function initVectorStore(): Promise<VectorStoreInstance> {
   const table = await db.createTable('document_chunks', [placeholderChunk]);
   // Delete the placeholder after table creation
   await table.delete('doc_id = "__placeholder__"');
-  console.log('[vector-store] Created table document_chunks');
+  logger.info('VectorStore', 'Created table document_chunks');
 
   vectorStore = { table, db };
-  console.log(`[vector-store] Vector store initialized at: ${VECTOR_DB_PATH}`);
+  logger.info('VectorStore', `Vector store initialized at: ${VECTOR_DB_PATH}`);
   return vectorStore;
 }
 
@@ -130,7 +131,7 @@ export async function addChunks(chunks: Omit<DocumentChunk, 'id'>[]): Promise<vo
   }));
 
   await store.table.add(chunksWithIds);
-  console.log(`[vector-store] Added ${chunks.length} chunks`);
+  logger.debug('VectorStore', `Added ${chunks.length} chunks`);
 }
 
 export async function searchChunks(
@@ -160,7 +161,7 @@ export async function searchChunks(
       createdAt: Number(row.created_at),
     }));
   } catch (error) {
-    console.warn('[vector-store] Vector search not yet fully configured:', error);
+    logger.warn('VectorStore', 'Vector search not yet fully configured:', error);
     return [];
   }
 }
@@ -186,14 +187,14 @@ export async function getChunksByDocId(docId: string): Promise<SearchResult[]> {
       createdAt: Number(row.created_at),
     }));
   } catch (error) {
-    console.warn('[vector-store] Query failed:', error);
+    logger.error('VectorStore', 'Query failed:', error);
     return [];
   }
 }
 
 export async function deleteChunksByDocId(_docId: string): Promise<void> {
   // Note: Full implementation will be done when LanceDB API is stabilized
-  console.warn('[vector-store] deleteChunksByDocId - pending full implementation');
+  logger.warn('VectorStore', 'deleteChunksByDocId - pending full implementation');
 }
 
 export async function getChunkCount(): Promise<number> {
