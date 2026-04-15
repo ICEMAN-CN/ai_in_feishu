@@ -706,7 +706,7 @@ export class VectorStoreService {
 | 项目 | 值 |
 |------|-----|
 | 状态 | ✅ 完成 |
-| Commit | `` |
+| Commit | `63a5925` |
 | 实现文件 | `src/core/vector-store.ts` |
 | 测试文件 | `tests/vector-store.test.ts` |
 | 测试用例 | TC-5.5-001 ~ TC-5.5-003 (3个) + 边界测试 = 15个 |
