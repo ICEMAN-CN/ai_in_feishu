@@ -454,6 +454,16 @@ export class ChunkingService {
 | TC-5.3-002 | 空文本 | 返回空数组 | 边界测试 |
 | TC-5.3-003 | 短文本 | 过滤返回空 | 边界测试 |
 
+#### 2.3.4 实现状态
+
+| 项目 | 值 |
+|------|-----|
+| 状态 | ✅ 完成 |
+| Commit | `` |
+| 实现文件 | `src/services/chunking.ts` |
+| 测试文件 | `tests/chunking.test.ts` |
+| 测试用例 | TC-5.3-001 ~ TC-5.3-003 (3个) + 边界测试 (18个) = 21个 |
+
 ---
 
 ### 模块 5.4: Embedding服务
