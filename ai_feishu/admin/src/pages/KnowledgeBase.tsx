@@ -108,7 +108,7 @@ export function KnowledgeBase() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-4 text-center">
             <p className="text-3xl font-bold">{stats?.totalDocuments || 0}</p>
@@ -174,7 +174,7 @@ export function KnowledgeBase() {
         {folders?.folders?.map((folder: { id: string; name: string; url: string; docCount?: number; lastSyncAt?: string }) => (
           <Card key={folder.id}>
             <CardContent className="pt-4">
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{folder.name}</span>
@@ -185,7 +185,7 @@ export function KnowledgeBase() {
                     最后同步: {folder.lastSyncAt || '从未'}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     size="sm"
                     variant="outline"
