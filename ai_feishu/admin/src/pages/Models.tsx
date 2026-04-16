@@ -5,10 +5,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+import { AlertCircle, CheckCircle, XCircle, Plus, Trash2 } from 'lucide-react';
 
 export function Models() {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['models'],
     queryFn: api.getModels,
   });
@@ -39,7 +40,26 @@ export function Models() {
     },
   });
 
-  if (isLoading) return <div>加载中...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">加载中...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-2 text-red-500">
+          <AlertCircle size={20} />
+          <span>加载失败: {(error as Error).message}</span>
+        </div>
+      </div>
+    );
+  }
+
+  const models = data?.models || [];
 
   return (
     <div className="space-y-6">
@@ -49,6 +69,25 @@ export function Models() {
           {showForm ? '取消' : '+ 添加模型'}
         </Button>
       </div>
+
+      {createModel.isError && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700">
+          <XCircle size={18} />
+          <span>创建失败: {(createModel.error as Error).message}</span>
+        </div>
+      )}
+      {createModel.isSuccess && (
+        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md text-green-700">
+          <CheckCircle size={18} />
+          <span>模型创建成功</span>
+        </div>
+      )}
+      {deleteModel.isError && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700">
+          <XCircle size={18} />
+          <span>删除失败: {(deleteModel.error as Error).message}</span>
+        </div>
+      )}
 
       {showForm && (
         <Card>
@@ -63,7 +102,7 @@ export function Models() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               />
               <select
-                className="border rounded px-3 py-2"
+                className="border rounded px-3 py-2 bg-white"
                 value={formData.provider}
                 onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
               >
@@ -80,7 +119,7 @@ export function Models() {
               onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
             />
             <Input
-              placeholder="Base URL"
+              placeholder="Base URL（可选，留空使用默认值）"
               value={formData.baseUrl}
               onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
             />
@@ -100,7 +139,7 @@ export function Models() {
             </div>
             <Button
               onClick={() => createModel.mutate(formData)}
-              disabled={createModel.isPending}
+              disabled={createModel.isPending || !formData.name || !formData.apiKey || !formData.modelId}
             >
               {createModel.isPending ? '创建中...' : '创建'}
             </Button>
@@ -108,8 +147,24 @@ export function Models() {
         </Card>
       )}
 
+      {models.length === 0 && !showForm && (
+        <Card>
+          <CardContent className="pt-8 pb-8 text-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="p-3 bg-gray-100 rounded-full">
+                <Plus className="text-gray-400" size={24} />
+              </div>
+              <div>
+                <p className="text-gray-500 font-medium">暂无模型</p>
+                <p className="text-sm text-gray-400 mt-1">点击上方"添加模型"创建一个</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-4">
-        {data?.models?.map((model: any) => (
+        {models.map((model: any) => (
           <Card key={model.id}>
             <CardContent className="pt-4">
               <div className="flex justify-between items-start">
@@ -130,6 +185,7 @@ export function Models() {
                   onClick={() => deleteModel.mutate(model.id)}
                   disabled={deleteModel.isPending}
                 >
+                  <Trash2 size={16} className="mr-1" />
                   删除
                 </Button>
               </div>
