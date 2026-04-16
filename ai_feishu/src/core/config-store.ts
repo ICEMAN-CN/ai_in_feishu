@@ -30,6 +30,9 @@ export function initDatabase(): Database.Database {
   database.pragma('journal_mode = WAL');
   database.pragma('foreign_keys = ON');
 
+  // Assign to global db instance
+  db = database;
+
   // Create schema
   database.exec(`
     -- Configuration database version
