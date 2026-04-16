@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { AlertCircle, CheckCircle, XCircle, Plus, FolderSync, Trash2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -8,11 +9,11 @@ import { Badge } from '../components/ui/badge';
 
 export function KnowledgeBase() {
   const queryClient = useQueryClient();
-  const { data: folders } = useQuery({
+  const { data: folders, isLoading, error } = useQuery({
     queryKey: ['folders'],
     queryFn: api.getFolders,
   });
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: isStatsLoading } = useQuery({
     queryKey: ['kbStats'],
     queryFn: api.getKBStats,
   });
@@ -47,9 +48,65 @@ export function KnowledgeBase() {
     sync.mutate(undefined);
   };
 
+  if (isLoading || isStatsLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">加载中...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center gap-2 text-red-500">
+          <AlertCircle size={20} />
+          <span>加载失败: {(error as Error).message}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">知识库管理</h1>
+
+      {createFolder.isError && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700">
+          <XCircle size={18} />
+          <span>添加失败: {(createFolder.error as Error).message}</span>
+        </div>
+      )}
+      {createFolder.isSuccess && (
+        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md text-green-700">
+          <CheckCircle size={18} />
+          <span>文件夹添加成功</span>
+        </div>
+      )}
+      {deleteFolder.isError && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700">
+          <XCircle size={18} />
+          <span>删除失败: {(deleteFolder.error as Error).message}</span>
+        </div>
+      )}
+      {deleteFolder.isSuccess && (
+        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md text-green-700">
+          <CheckCircle size={18} />
+          <span>文件夹已删除</span>
+        </div>
+      )}
+      {sync.isError && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md text-red-700">
+          <XCircle size={18} />
+          <span>同步失败: {(sync.error as Error).message}</span>
+        </div>
+      )}
+      {sync.isSuccess && (
+        <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-md text-green-700">
+          <CheckCircle size={18} />
+          <span>同步完成</span>
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-4">
         <Card>
@@ -92,13 +149,29 @@ export function KnowledgeBase() {
             onClick={() => createFolder.mutate({ name: newFolderName, url: newFolderUrl })}
             disabled={!newFolderName || !newFolderUrl || createFolder.isPending}
           >
+            <Plus size={16} className="mr-1" />
             {createFolder.isPending ? '添加中...' : '添加文件夹'}
           </Button>
         </CardContent>
       </Card>
 
       <div className="space-y-4">
-        {folders?.folders?.map((folder: any) => (
+        {folders?.folders?.length === 0 && (
+          <Card>
+            <CardContent className="pt-8 pb-8 text-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="p-3 bg-gray-100 rounded-full">
+                  <FolderSync className="text-gray-400" size={24} />
+                </div>
+                <div>
+                  <p className="text-gray-500 font-medium">暂无知识库文件夹</p>
+                  <p className="text-sm text-gray-400 mt-1">点击上方"添加文件夹"创建一个</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {folders?.folders?.map((folder: { id: string; name: string; url: string; docCount?: number; lastSyncAt?: string }) => (
           <Card key={folder.id}>
             <CardContent className="pt-4">
               <div className="flex justify-between items-start">
@@ -119,7 +192,7 @@ export function KnowledgeBase() {
                     onClick={() => sync.mutate(folder.id)}
                     disabled={sync.isPending}
                   >
-                    同步
+                    <FolderSync size={16} className="mr-1" />同步
                   </Button>
                   <Button
                     size="sm"
@@ -127,7 +200,7 @@ export function KnowledgeBase() {
                     onClick={() => deleteFolder.mutate(folder.id)}
                     disabled={deleteFolder.isPending}
                   >
-                    删除
+                    <Trash2 size={16} className="mr-1" />删除
                   </Button>
                 </div>
               </div>
