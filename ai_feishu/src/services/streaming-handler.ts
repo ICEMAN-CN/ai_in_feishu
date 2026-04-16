@@ -5,6 +5,8 @@ import { MessageService } from '../feishu/message-service';
 import { CardBuilder } from '../feishu/card-builder';
 import { contextManager, Message } from './context-manager';
 import { saveMessage } from '../core/config-store';
+import { logger } from '../core/logger';
+import { metrics } from '../core/metrics-logger';
 
 export interface StreamingHandlerConfig {
   updateIntervalMs: number;
@@ -32,6 +34,11 @@ export class StreamingHandler {
     threadId: string,
     userMessage: string
   ): Promise<void> {
+    const requestId = `stream-${chatId}-${Date.now()}`;
+    const methodStart = Date.now();
+
+    metrics.recordRequestStart(requestId, 'streaming');
+
     const session = this.sessionManager.getSessionByThreadId(threadId);
     if (!session) {
       throw new Error(`Session not found for threadId: ${threadId}`);
@@ -67,6 +74,7 @@ export class StreamingHandler {
 
     let fullResponse = '';
     let lastUpdateTime = 0;
+    let firstByteTime: number | null = null;
 
     try {
       for await (const textDelta of this.llmRouter.streamGenerate(
@@ -76,12 +84,32 @@ export class StreamingHandler {
       )) {
         fullResponse += textDelta;
 
+        // Record first byte time
+        if (firstByteTime === null) {
+          firstByteTime = Date.now() - methodStart;
+          metrics.recordStreamingFirstByte(requestId, firstByteTime);
+        }
+
         const now = Date.now();
         if (now - lastUpdateTime >= this.config.updateIntervalMs) {
           await this.updateCardWithCursor(feishuMessageId, fullResponse);
           lastUpdateTime = now;
         }
       }
+
+      const totalDuration = Date.now() - methodStart;
+      metrics.recordRequestEnd(requestId);
+
+      // Log structured timing
+      logger.info('StreamingHandler', JSON.stringify({
+        metric: {
+          type: 'streaming',
+          requestId,
+          firstByteMs: firstByteTime,
+          totalMs: totalDuration,
+          chunks: fullResponse.length,
+        }
+      }));
 
       await this.finalizeCard(feishuMessageId, fullResponse);
 
