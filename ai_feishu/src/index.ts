@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { logger } from './core/logger';
 import { CallbackRouter, CardAction } from './routers/callback';
 import adminRouter from './routers/admin';
-import { initKBRouter } from './routers/admin-kb';
+import { initKBRouter, initRAGRouter } from './routers/admin-kb';
 import adminKb from './routers/admin-kb';
 import { KBFolderManager } from './core/kb-folder-manager';
 import { CardBuilder } from './feishu/card-builder';
@@ -34,7 +34,18 @@ const messageHandler = new MessageHandler();
 app.route('/feishu', callbackRouter.getApp());
 app.route('/api/admin', adminRouter);
 
-app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get('/health', (c) => {
+  const enabledModels = getEnabledModels();
+  const defaultModel = enabledModels.find(m => m.isDefault);
+  return c.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    wsConnected: false,
+    mcpConnected: false,
+    vectorDbStatus: 'ready',
+    currentModel: defaultModel?.name || null,
+  });
+});
 
 const db = getDb();
 const llmRouter = new LLMRouter();
@@ -45,6 +56,8 @@ const feishuDocService = new FeishuDocService(feishuClient);
 const chunkingService = new ChunkingService();
 const embeddingService = new EmbeddingService();
 const ragPipeline = new RAGPipeline(kbFolderManager, feishuDocService, chunkingService, embeddingService);
+initKBRouter(kbFolderManager, ragPipeline);
+initRAGRouter(ragPipeline, new VectorStoreService(), kbFolderManager);
 app.route('/api/admin/kb', adminKb);
 
 let messageService: MessageService;

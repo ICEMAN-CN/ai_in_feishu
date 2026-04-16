@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { KBFolderManager } from '../core/kb-folder-manager';
 import { RAGPipeline } from '../services/rag-pipeline';
 import { VectorStoreService } from '../core/vector-store-service';
+import { getStats as getVectorStats } from '../core/vector-store';
 import { logger } from '../core/logger';
 
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || '';
@@ -35,9 +36,12 @@ export function initKBRouter(fm: KBFolderManager, rp: RAGPipeline): void {
   ragPipeline = rp;
 }
 
-export function initRAGRouter(rp: RAGPipeline, vs: VectorStoreService): void {
+export function initRAGRouter(rp: RAGPipeline, vs: VectorStoreService, fm?: KBFolderManager): void {
   ragPipeline = rp;
   vectorStoreService = vs;
+  if (fm) {
+    folderManager = fm;
+  }
 }
 
 interface CreateFolderBody {
@@ -137,10 +141,30 @@ adminKb.get('/stats', async (c) => {
   }
 
   try {
-    const stats = await vectorStoreService.getStats();
+    const vectorStats = await getVectorStats();
+    let lastSyncAt: string | null = null;
+    let totalDocuments = 0;
+
+    if (folderManager) {
+      const folders = folderManager.getAllFolders();
+      for (const folder of folders) {
+        if (folder.lastSyncAt) {
+          if (!lastSyncAt || folder.lastSyncAt > lastSyncAt) {
+            lastSyncAt = folder.lastSyncAt;
+          }
+        }
+        totalDocuments += folder.lastSyncDocCount || 0;
+      }
+    }
+
+    const avgChunkSizeBytes = 1000;
+    const storageSize = `${((vectorStats.totalChunks * avgChunkSizeBytes) / (1024 * 1024)).toFixed(2)}MB`;
+
     return c.json({
-      totalChunks: stats.totalChunks,
-      totalDocuments: stats.totalDocuments,
+      totalChunks: vectorStats.totalChunks,
+      totalDocuments: vectorStats.totalDocuments || totalDocuments,
+      storageSize,
+      lastSyncAt,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
