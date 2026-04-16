@@ -5,6 +5,7 @@ import { createGoogleGenerativeAI, type GoogleGenerativeAIProvider } from '@ai-s
 import { decryptFromStorage } from '../core/encryption';
 import { getEnabledModels } from '../core/config-store';
 import { logger } from '../core/logger';
+import { AITool, ToolRegistry } from '../tools/index';
 
 export interface ModelProviderConfig {
   id: string;
@@ -24,6 +25,7 @@ function mapDbProviderToSdkProvider(dbProvider: string): string {
 export class LLMRouter {
   private defaultModelId: string | null = null;
   private modelConfigs: Map<string, ModelProviderConfig> = new Map();
+  private tools: Map<string, AITool> = new Map();
 
   constructor() {
     this.loadModels();
@@ -149,6 +151,20 @@ export class LLMRouter {
     });
 
     return result.text;
+  }
+
+  setToolRegistry(registry: ToolRegistry): void {
+    for (const tool of registry.getTools()) {
+      this.tools.set(tool.name, tool);
+    }
+  }
+
+  async executeTool(toolName: string, args: any): Promise<string> {
+    const tool = this.tools.get(toolName);
+    if (!tool) {
+      throw new Error(`Tool not found: ${toolName}`);
+    }
+    return await tool.handler(args);
   }
 }
 
