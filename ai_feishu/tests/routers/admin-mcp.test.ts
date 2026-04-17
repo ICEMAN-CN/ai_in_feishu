@@ -51,6 +51,15 @@ vi.mock('@/core/mcp-tool-auth', () => ({
   MCPToolAuthManager: vi.fn(() => mockToolAuthManager),
 }));
 
+const TEST_AUTH_HEADER = { 'X-Admin-API-Key': 'test-admin-api-key-for-testing' };
+
+function authRequest(app: Hono, path: string, options?: any): Promise<Response> {
+  return app.request(path, {
+    ...options,
+    headers: { ...TEST_AUTH_HEADER, ...options?.headers },
+  }) as Promise<Response>;
+}
+
 const originalEnv = process.env;
 
 describe('TC-4.4: Admin MCP Router', () => {
@@ -89,7 +98,7 @@ describe('TC-4.4: Admin MCP Router', () => {
     });
 
     process.env = { ...originalEnv };
-    delete process.env.ADMIN_API_KEY;
+    process.env.ADMIN_API_KEY = 'test-admin-api-key-for-testing';
 
     const { initMCPAdminRouter } = await import('../../src/routers/admin-mcp');
     const mockDb = {} as any;
@@ -105,7 +114,7 @@ describe('TC-4.4: Admin MCP Router', () => {
       const app = new Hono();
       app.route('/api/admin/mcp', adminMCP);
 
-      const res = await app.request('/api/admin/mcp/status');
+      const res = await authRequest(app, '/api/admin/mcp/status');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -123,7 +132,7 @@ describe('TC-4.4: Admin MCP Router', () => {
       const app = new Hono();
       app.route('/api/admin/mcp', adminMCP);
 
-      const res = await app.request('/api/admin/mcp/status');
+      const res = await authRequest(app, '/api/admin/mcp/status');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -136,7 +145,7 @@ describe('TC-4.4: Admin MCP Router', () => {
       const app = new Hono();
       app.route('/api/admin/mcp', adminMCP);
 
-      const res = await app.request('/api/admin/mcp/tools');
+      const res = await authRequest(app, '/api/admin/mcp/tools');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -156,7 +165,7 @@ describe('TC-4.4: Admin MCP Router', () => {
       const app = new Hono();
       app.route('/api/admin/mcp', adminMCP);
 
-      const res = await app.request('/api/admin/mcp/tools');
+      const res = await authRequest(app, '/api/admin/mcp/tools');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -172,7 +181,7 @@ describe('TC-4.4: Admin MCP Router', () => {
       const app = new Hono();
       app.route('/api/admin/mcp', adminMCP);
 
-      const res = await app.request('/api/admin/mcp/tools/read_document', {
+      const res = await authRequest(app, '/api/admin/mcp/tools/read_document', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: false }),
@@ -188,7 +197,7 @@ describe('TC-4.4: Admin MCP Router', () => {
       const app = new Hono();
       app.route('/api/admin/mcp', adminMCP);
 
-      const res = await app.request('/api/admin/mcp/tools/create_document', {
+      const res = await authRequest(app, '/api/admin/mcp/tools/create_document', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fallbackEnabled: false }),
@@ -201,7 +210,7 @@ describe('TC-4.4: Admin MCP Router', () => {
       const app = new Hono();
       app.route('/api/admin/mcp', adminMCP);
 
-      const res = await app.request('/api/admin/mcp/tools/non_existent_tool', {
+      const res = await authRequest(app, '/api/admin/mcp/tools/non_existent_tool', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: true }),
@@ -216,7 +225,7 @@ describe('TC-4.4: Admin MCP Router', () => {
       const app = new Hono();
       app.route('/api/admin/mcp', adminMCP);
 
-      const res = await app.request('/api/admin/mcp/health');
+      const res = await authRequest(app, '/api/admin/mcp/health');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -236,7 +245,7 @@ describe('TC-4.4: Admin MCP Router', () => {
       const app = new Hono();
       app.route('/api/admin/mcp', adminMCP);
 
-      const res = await app.request('/api/admin/mcp/health');
+      const res = await authRequest(app, '/api/admin/mcp/health');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -246,13 +255,22 @@ describe('TC-4.4: Admin MCP Router', () => {
   });
 
   describe('Authentication with ADMIN_API_KEY', () => {
-    it('should allow requests without API key when ADMIN_API_KEY is not set', async () => {
+    it('should allow requests with valid API key', async () => {
+      const app = new Hono();
+      app.route('/api/admin/mcp', adminMCP);
+
+      const res = await authRequest(app, '/api/admin/mcp/status');
+
+      expect(res.status).toBe(200);
+    });
+
+    it('should reject requests without API key', async () => {
       const app = new Hono();
       app.route('/api/admin/mcp', adminMCP);
 
       const res = await app.request('/api/admin/mcp/status');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(401);
     });
   });
 });
