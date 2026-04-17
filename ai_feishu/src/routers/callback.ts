@@ -20,6 +20,9 @@ export class CallbackRouter {
   private messageHandlers: Set<MessageHandler> = new Set();
   private cardActionHandlers: Set<CardActionHandler> = new Set();
   private messageHandler: FeishuMessageHandler;
+  private processedMessageIds = new Map<string, number>();
+  private readonly MAX_SIZE = 10000;
+  private readonly TTL_MS = 5 * 60 * 1000;
 
   constructor() {
     this.app = new Hono();
@@ -101,20 +104,21 @@ export class CallbackRouter {
     return eventType === 'im.message.receive_v1';
   }
 
-  private processedMessageIds = new Set<string>();
-
   private isDuplicate(messageId: string): boolean {
-    if (this.processedMessageIds.has(messageId)) {
+    const now = Date.now();
+    const timestamp = this.processedMessageIds.get(messageId);
+
+    if (timestamp !== undefined && now - timestamp < this.TTL_MS) {
       return true;
     }
-    this.processedMessageIds.add(messageId);
 
-    if (this.processedMessageIds.size > 10000) {
-      const iterator = this.processedMessageIds.values();
-      for (let i = 0; i < 5000; i++) {
-        const next = iterator.next();
-        if (next.value) {
-          this.processedMessageIds.delete(next.value);
+    this.processedMessageIds.set(messageId, now);
+
+    if (this.processedMessageIds.size > this.MAX_SIZE) {
+      const cutoff = now - this.TTL_MS;
+      for (const [id, ts] of this.processedMessageIds) {
+        if (ts < cutoff) {
+          this.processedMessageIds.delete(id);
         }
       }
     }
