@@ -175,7 +175,7 @@ export class MCPClient extends EventEmitter {
 
   private async readSSestream(
     reader: ReadableStreamDefaultReader<Uint8Array>,
-    decoder: TextDecoder,
+    decoder: { decode(chunk: Uint8Array, options?: { stream?: boolean }): string },
     initialBuffer: string
   ): Promise<void> {
     let buffer = initialBuffer;
@@ -270,7 +270,7 @@ export class MCPClient extends EventEmitter {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data: MCPResponse = await response.json();
+      const data = await response.json() as MCPResponse;
 
       if (data.error) {
         throw new Error(`MCP error: ${data.error.message}`);
@@ -381,7 +381,7 @@ export class MCPClient extends EventEmitter {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    const data: MCPResponse = await response.json();
+    const data = await response.json() as MCPResponse;
 
     if (data.error) {
       throw new Error(`MCP error: ${data.error.message}`);

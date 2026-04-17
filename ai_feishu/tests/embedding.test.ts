@@ -3,12 +3,27 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 vi.stubEnv('EMBEDDING_MODEL', 'text-embedding-3-small');
 vi.stubEnv('EMBEDDING_DIMENSION', '1536');
 
-const { mockEmbed, mockEmbedMany } = vi.hoisted(() => {
+const { mockEmbed, mockEmbedMany, mockEmbeddingModel } = vi.hoisted(() => {
+  const model = {
+    specificationVersion: 'v3',
+    provider: 'openai',
+    modelId: 'text-embedding-3-small',
+    maxEmbeddingsPerCall: 1,
+    supportsParallelCalls: true,
+    doEmbed: vi.fn().mockResolvedValue({ embeddings: [[0.1, 0.2, 0.3, 0.4, 0.5]] }),
+  };
   return {
     mockEmbed: vi.fn(),
     mockEmbedMany: vi.fn(),
+    mockEmbeddingModel: model,
   };
 });
+
+vi.mock('@ai-sdk/openai', () => ({
+  openai: {
+    textEmbeddingModel: vi.fn().mockReturnValue(mockEmbeddingModel),
+  },
+}));
 
 vi.mock('ai', () => ({
   embed: mockEmbed,
@@ -32,7 +47,7 @@ describe('EmbeddingService', () => {
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBe(5);
       expect(mockEmbed).toHaveBeenCalledWith({
-        model: 'text-embedding-3-small',
+        model: mockEmbeddingModel,
         value: 'Hello world',
       });
     });
@@ -66,7 +81,7 @@ describe('EmbeddingService', () => {
       await service.embedBatch(texts);
 
       expect(mockEmbedMany).toHaveBeenCalledWith({
-        model: 'text-embedding-3-small',
+        model: mockEmbeddingModel,
         values: texts,
       });
     });

@@ -13,7 +13,7 @@ export class FeishuDocService {
   // 获取文件夹下的文档列表
   async listDocumentsInFolder(folderToken: string): Promise<Array<{ documentId: string; title: string }>> {
     try {
-      const response = await this.client.drive.v1.folder.getChildren({
+      const response = await (this.client as any).drive.v1.folder.getChildren({
         path: { folder_token: folderToken },
       });
 
@@ -41,7 +41,7 @@ export class FeishuDocService {
       const title = metaResponse.data?.document?.title || 'Untitled';
 
       // 获取文档内容
-      const contentResponse = await this.client.docx.v1.document.rawContent.get({
+      const contentResponse = await (this.client.docx.v1.document.rawContent as any).get({
         path: { document_id: documentId },
       });
 
