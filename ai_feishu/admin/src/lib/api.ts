@@ -1,17 +1,24 @@
+import { useAuthStore } from '../stores/useAuthStore';
+
 const API_BASE = import.meta.env.VITE_API_BASE || '/api/admin';
-const API_SECRET = import.meta.env.VITE_ADMIN_API_SECRET || '';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = useAuthStore.getState().token;
+
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'X-Admin-API-Key': API_SECRET,
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...options?.headers,
     },
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      useAuthStore.getState().logout();
+      window.location.href = '/login';
+    }
     throw new Error(`API Error: ${response.status}`);
   }
 
