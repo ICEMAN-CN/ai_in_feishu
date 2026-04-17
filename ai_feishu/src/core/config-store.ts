@@ -445,10 +445,12 @@ export function saveMessage(message: ConversationMessage): void {
 
 export function getMessagesBySession(sessionId: string, limit?: number): ConversationMessage[] {
   let query = 'SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC';
+  const params: any[] = [sessionId];
   if (limit) {
-    query += ` LIMIT ${limit}`;
+    query += ' LIMIT ?';
+    params.push(limit);
   }
-  const rows = getDb().prepare(query).all(sessionId) as any[];
+  const rows = getDb().prepare(query).all(...params) as any[];
   return rows.map(mapRowToMessage);
 }
 
