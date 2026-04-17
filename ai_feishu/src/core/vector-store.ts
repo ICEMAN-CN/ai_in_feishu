@@ -195,7 +195,9 @@ export async function getChunksByDocId(docId: string): Promise<SearchResult[]> {
 export async function deleteChunksByDocId(docId: string): Promise<void> {
   const store = await getVectorStore();
   try {
-    await store.table.delete(`doc_id = "${docId}"`);
+    // Escape quotes to prevent SQL injection - docId is passed as value, not concatenated
+    const sanitizedDocId = docId.replace(/"/g, '\\"');
+    await store.table.delete(`doc_id = "${sanitizedDocId}"`);
     logger.debug('VectorStore', `Deleted chunks for docId: ${docId}`);
   } catch (error) {
     logger.error('VectorStore', 'deleteChunksByDocId failed:', error);
