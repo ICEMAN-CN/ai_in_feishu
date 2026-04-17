@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { v4 as uuidv4 } from 'uuid';
 import { encryptForStorage } from '../core/encryption';
+import { generateToken } from '../core/token';
 import { logger } from '../core/logger';
 import { getAllModels, saveModel, deleteModel, getModel, getSystemConfig, setSystemConfig } from '../core/config-store';
 import type { ModelConfig, ModelProvider } from '../types/config';
@@ -11,7 +12,13 @@ if (!ADMIN_API_KEY) {
 }
 
 async function authMiddleware(c: any, next: () => Promise<void>) {
-  const providedKey = c.req.header('X-Admin-API-Key');
+  const authHeader = c.req.header('Authorization');
+  let providedKey = authHeader?.replace('Bearer ', '');
+
+  if (!providedKey) {
+    providedKey = c.req.header('X-Admin-API-Key');
+  }
+
   if (!providedKey || providedKey !== ADMIN_API_KEY) {
     return c.json({ success: false, message: 'Unauthorized: Invalid or missing API key' }, { status: 401 });
   }
@@ -20,6 +27,19 @@ async function authMiddleware(c: any, next: () => Promise<void>) {
 }
 
 const admin = new Hono();
+
+admin.post('/login', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const { apiKey } = body;
+
+  if (!apiKey || apiKey !== ADMIN_API_KEY) {
+    return c.json({ success: false, message: 'Invalid API key' }, { status: 401 });
+  }
+
+  const { token, expiresAt } = generateToken();
+  return c.json({ success: true, token, expiresAt });
+});
+
 admin.use('*', authMiddleware);
 
 interface CreateModelBody {
