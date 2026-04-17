@@ -5,20 +5,21 @@ import { VectorStoreService } from '../core/vector-store-service';
 import { getStats as getVectorStats } from '../core/vector-store';
 import { logger } from '../core/logger';
 
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || '';
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
+if (!ADMIN_API_KEY) {
+  throw new Error('ADMIN_API_KEY environment variable is required');
+}
 
 async function authMiddleware(c: any, next: () => Promise<void>) {
-  if (!ADMIN_API_KEY) {
-    logger.warn('AdminAPI', 'ADMIN_API_KEY not set - authentication disabled');
-    await next();
-    return;
+  const authHeader = c.req.header('Authorization');
+  let providedKey = authHeader?.replace('Bearer ', '');
+
+  if (!providedKey) {
+    providedKey = c.req.header('X-Admin-API-Key');
   }
 
-  const providedKey = c.req.header('X-Admin-API-Key');
   if (!providedKey || providedKey !== ADMIN_API_KEY) {
-    c.status(401);
-    c.json({ success: false, message: 'Unauthorized: Invalid or missing API key' });
-    return;
+    return c.json({ success: false, message: 'Unauthorized: Invalid or missing API key' }, { status: 401 });
   }
 
   await next();
