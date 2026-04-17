@@ -22,6 +22,15 @@ import type { ModelConfig } from '../src/types/config';
 vi.mock('../src/core/config-store');
 vi.mock('../src/core/encryption');
 
+const TEST_AUTH_HEADER = { 'X-Admin-API-Key': 'test-admin-api-key-for-testing' };
+
+function authRequest(app: Hono, path: string, options?: any): Promise<Response> {
+  return app.request(path, {
+    ...options,
+    headers: { ...TEST_AUTH_HEADER, ...options?.headers },
+  }) as Promise<Response>;
+}
+
 describe('Sprint 7 Admin API Integration Tests', () => {
   let app: Hono;
 
@@ -68,7 +77,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
   // ========================================
   describe('GET /health (full integration)', () => {
     it('TC-7.1-001: health endpoint should be accessible', async () => {
-      const res = await app.request('/health');
+      const res = await authRequest(app, '/health');
       expect([200, 404]).toContain(res.status);
     });
   });
@@ -86,7 +95,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
         return configs[key] || null;
       });
 
-      const res = await app.request('/api/admin/config');
+      const res = await authRequest(app, '/api/admin/config');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -101,7 +110,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     it('TC-7.2-002: should mask appSecret in response', async () => {
       vi.mocked(configStore.getSystemConfig).mockReturnValue(null);
 
-      const res = await app.request('/api/admin/config');
+      const res = await authRequest(app, '/api/admin/config');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -114,7 +123,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
       vi.mocked(configStore.getSystemConfig).mockReturnValue(null);
       vi.mocked(encryption.encryptForStorage).mockReturnValue('encrypted_secret');
 
-      const res = await app.request('/api/admin/config/feishu', {
+      const res = await authRequest(app, '/api/admin/config/feishu', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ appId: 'cli_new_app_id' }),
@@ -130,7 +139,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
       vi.mocked(configStore.getSystemConfig).mockReturnValue(null);
       vi.mocked(encryption.encryptForStorage).mockReturnValue('encrypted_new_secret');
 
-      const res = await app.request('/api/admin/config/feishu', {
+      const res = await authRequest(app, '/api/admin/config/feishu', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ appSecret: 'new_secret_value' }),
@@ -144,7 +153,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     });
 
     it('TC-7.2-005: should return 400 when no fields provided', async () => {
-      const res = await app.request('/api/admin/config/feishu', {
+      const res = await authRequest(app, '/api/admin/config/feishu', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -159,7 +168,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     it('TC-7.2-006: should return 400 when only empty appSecret provided', async () => {
       vi.mocked(configStore.getSystemConfig).mockReturnValue(null);
 
-      const res = await app.request('/api/admin/config/feishu', {
+      const res = await authRequest(app, '/api/admin/config/feishu', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ appSecret: '' }),
@@ -178,7 +187,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     it('TC-7.3-001: should return all models', async () => {
       vi.mocked(configStore.getAllModels).mockReturnValue([mockModel]);
 
-      const res = await app.request('/api/admin/models');
+      const res = await authRequest(app, '/api/admin/models');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -192,7 +201,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     it('TC-7.3-002: should return empty array when no models', async () => {
       vi.mocked(configStore.getAllModels).mockReturnValue([]);
 
-      const res = await app.request('/api/admin/models');
+      const res = await authRequest(app, '/api/admin/models');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -202,7 +211,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     it('TC-7.3-003: should not expose apiKeyEncrypted in response', async () => {
       vi.mocked(configStore.getAllModels).mockReturnValue([mockModel]);
 
-      const res = await app.request('/api/admin/models');
+      const res = await authRequest(app, '/api/admin/models');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -215,7 +224,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     it('TC-7.3-004: should return model by id', async () => {
       vi.mocked(configStore.getModel).mockReturnValue(mockModel);
 
-      const res = await app.request('/api/admin/models/model-test-001');
+      const res = await authRequest(app, '/api/admin/models/model-test-001');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -226,7 +235,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     it('TC-7.3-005: should return 404 when model not found', async () => {
       vi.mocked(configStore.getModel).mockReturnValue(null);
 
-      const res = await app.request('/api/admin/models/invalid-id');
+      const res = await authRequest(app, '/api/admin/models/invalid-id');
       const body = await res.json();
 
       expect(res.status).toBe(404);
@@ -240,7 +249,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
       vi.mocked(encryption.encryptForStorage).mockReturnValue('encrypted-api-key');
       vi.mocked(configStore.saveModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models', {
+      const res = await authRequest(app, '/api/admin/models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -264,7 +273,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
       vi.mocked(encryption.encryptForStorage).mockReturnValue('encrypted-key');
       vi.mocked(configStore.saveModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models', {
+      const res = await authRequest(app, '/api/admin/models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -284,7 +293,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     });
 
     it('TC-7.3-008: should return 400 for missing required fields', async () => {
-      const res = await app.request('/api/admin/models', {
+      const res = await authRequest(app, '/api/admin/models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Incomplete Model' }),
@@ -297,7 +306,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     });
 
     it('TC-7.3-009: should return 400 for invalid provider', async () => {
-      const res = await app.request('/api/admin/models', {
+      const res = await authRequest(app, '/api/admin/models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -321,7 +330,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
         vi.mocked(encryption.encryptForStorage).mockReturnValue('encrypted');
         vi.mocked(configStore.saveModel).mockReturnValue();
 
-        const res = await app.request('/api/admin/models', {
+        const res = await authRequest(app, '/api/admin/models', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -342,7 +351,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
       vi.mocked(configStore.getModel).mockReturnValue(mockModel);
       vi.mocked(configStore.saveModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models/model-test-001', {
+      const res = await authRequest(app, '/api/admin/models/model-test-001', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Updated Model Name' }),
@@ -361,7 +370,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
       vi.mocked(encryption.encryptForStorage).mockReturnValue('new-encrypted-key');
       vi.mocked(configStore.saveModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models/model-test-001', {
+      const res = await authRequest(app, '/api/admin/models/model-test-001', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: 'new-api-key' }),
@@ -375,7 +384,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
       vi.mocked(configStore.getModel).mockReturnValue(mockModel);
       vi.mocked(configStore.saveModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models/model-test-001', {
+      const res = await authRequest(app, '/api/admin/models/model-test-001', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isDefault: false }),
@@ -390,7 +399,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     it('TC-7.3-014: should return 404 when model not found', async () => {
       vi.mocked(configStore.getModel).mockReturnValue(null);
 
-      const res = await app.request('/api/admin/models/invalid-id', {
+      const res = await authRequest(app, '/api/admin/models/invalid-id', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Test' }),
@@ -407,7 +416,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
       vi.mocked(configStore.getModel).mockReturnValue(mockModel);
       vi.mocked(configStore.deleteModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models/model-test-001', {
+      const res = await authRequest(app, '/api/admin/models/model-test-001', {
         method: 'DELETE',
       });
       const body = await res.json();
@@ -420,7 +429,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     it('TC-7.3-016: should return 404 when model not found', async () => {
       vi.mocked(configStore.getModel).mockReturnValue(null);
 
-      const res = await app.request('/api/admin/models/invalid-id', {
+      const res = await authRequest(app, '/api/admin/models/invalid-id', {
         method: 'DELETE',
       });
       const body = await res.json();
@@ -439,7 +448,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
       // For unit testing, we mock the module-level variables
       vi.mocked(configStore.getSystemConfig).mockReturnValue(null);
 
-      const res = await app.request('/api/admin/kb/folders');
+      const res = await authRequest(app, '/api/admin/kb/folders');
       // Without proper initialization, this returns 500
       // In integration tests with full app, it would return folders
       expect([200, 500]).toContain(res.status);
@@ -448,7 +457,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
 
   describe('POST /api/admin/kb/folders', () => {
     it('TC-7.4-002: should return 400 for missing name', async () => {
-      const res = await app.request('/api/admin/kb/folders', {
+      const res = await authRequest(app, '/api/admin/kb/folders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: 'https://feishu.cn/folder/test' }),
@@ -457,7 +466,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
     });
 
     it('TC-7.4-003: should return 400 for missing url', async () => {
-      const res = await app.request('/api/admin/kb/folders', {
+      const res = await authRequest(app, '/api/admin/kb/folders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Test Folder' }),
@@ -468,7 +477,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
 
   describe('DELETE /api/admin/kb/folders/:id', () => {
     it('TC-7.4-004: should return 404 for non-existent folder', async () => {
-      const res = await app.request('/api/admin/kb/folders/non-existent-id', {
+      const res = await authRequest(app, '/api/admin/kb/folders/non-existent-id', {
         method: 'DELETE',
       });
 
@@ -482,7 +491,7 @@ describe('Sprint 7 Admin API Integration Tests', () => {
   // ========================================
   describe('GET /api/admin/kb/stats', () => {
     it('TC-7.5-001: should return kb stats structure', async () => {
-      const res = await app.request('/api/admin/kb/stats');
+      const res = await authRequest(app, '/api/admin/kb/stats');
 
       // Without proper initialization (vector store, folder manager), returns 500
       // In full integration test with real services, would return proper stats
@@ -515,13 +524,20 @@ describe('Sprint 7 Admin API Integration Tests', () => {
   // Authentication Tests
   // ========================================
   describe('API Authentication', () => {
-    it('TC-7.7-001: should allow requests when ADMIN_API_KEY is not set', async () => {
-      // Without ADMIN_API_KEY env var, auth is disabled
+    it('TC-7.7-001: should allow requests with valid API key', async () => {
+      vi.mocked(configStore.getAllModels).mockReturnValue([mockModel]);
+
+      const res = await authRequest(app, '/api/admin/models');
+
+      expect(res.status).toBe(200);
+    });
+
+    it('TC-7.7-002: should reject requests without API key', async () => {
       vi.mocked(configStore.getAllModels).mockReturnValue([mockModel]);
 
       const res = await app.request('/api/admin/models');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(401);
     });
   });
 });

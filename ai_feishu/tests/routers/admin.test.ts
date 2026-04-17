@@ -8,6 +8,15 @@ import type { ModelConfig } from '../../src/types/config';
 vi.mock('../../src/core/config-store');
 vi.mock('../../src/core/encryption');
 
+const TEST_AUTH_HEADER = { 'X-Admin-API-Key': 'test-admin-api-key-for-testing' };
+
+function authRequest(app: Hono, path: string, options?: any): Promise<Response> {
+  return app.request(path, {
+    ...options,
+    headers: { ...TEST_AUTH_HEADER, ...options?.headers },
+  }) as Promise<Response>;
+}
+
 describe('Admin API', () => {
   let app: Hono;
 
@@ -36,7 +45,7 @@ describe('Admin API', () => {
     it('TC-3.5-001: should return all models', async () => {
       vi.mocked(configStore.getAllModels).mockReturnValue([mockModel]);
 
-      const res = await app.request('/api/admin/models');
+      const res = await authRequest(app, '/api/admin/models');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -50,7 +59,7 @@ describe('Admin API', () => {
     it('should return empty array when no models', async () => {
       vi.mocked(configStore.getAllModels).mockReturnValue([]);
 
-      const res = await app.request('/api/admin/models');
+      const res = await authRequest(app, '/api/admin/models');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -62,7 +71,7 @@ describe('Admin API', () => {
     it('should return model by id', async () => {
       vi.mocked(configStore.getModel).mockReturnValue(mockModel);
 
-      const res = await app.request('/api/admin/models/model-001');
+      const res = await authRequest(app, '/api/admin/models/model-001');
       const body = await res.json();
 
       expect(res.status).toBe(200);
@@ -72,7 +81,7 @@ describe('Admin API', () => {
     it('should return 404 when model not found', async () => {
       vi.mocked(configStore.getModel).mockReturnValue(null);
 
-      const res = await app.request('/api/admin/models/invalid-id');
+      const res = await authRequest(app, '/api/admin/models/invalid-id');
       const body = await res.json();
 
       expect(res.status).toBe(404);
@@ -86,7 +95,7 @@ describe('Admin API', () => {
       vi.mocked(encryption.encryptForStorage).mockReturnValue('encrypted-key');
       vi.mocked(configStore.saveModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models', {
+      const res = await authRequest(app, '/api/admin/models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,7 +116,7 @@ describe('Admin API', () => {
     });
 
     it('should return 400 for missing required fields', async () => {
-      const res = await app.request('/api/admin/models', {
+      const res = await authRequest(app, '/api/admin/models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,7 +130,7 @@ describe('Admin API', () => {
     });
 
     it('should return 400 for invalid provider', async () => {
-      const res = await app.request('/api/admin/models', {
+      const res = await authRequest(app, '/api/admin/models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -142,7 +151,7 @@ describe('Admin API', () => {
       vi.mocked(encryption.encryptForStorage).mockReturnValue('encrypted-key');
       vi.mocked(configStore.saveModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models', {
+      const res = await authRequest(app, '/api/admin/models', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,7 +177,7 @@ describe('Admin API', () => {
       vi.mocked(configStore.getModel).mockReturnValue(mockModel);
       vi.mocked(configStore.saveModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models/model-001', {
+      const res = await authRequest(app, '/api/admin/models/model-001', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -193,7 +202,7 @@ describe('Admin API', () => {
       vi.mocked(encryption.encryptForStorage).mockReturnValue('new-encrypted-key');
       vi.mocked(configStore.saveModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models/model-001', {
+      const res = await authRequest(app, '/api/admin/models/model-001', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -208,7 +217,7 @@ describe('Admin API', () => {
     it('should return 404 when model not found', async () => {
       vi.mocked(configStore.getModel).mockReturnValue(null);
 
-      const res = await app.request('/api/admin/models/invalid-id', {
+      const res = await authRequest(app, '/api/admin/models/invalid-id', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Test' }),
@@ -225,7 +234,7 @@ describe('Admin API', () => {
       vi.mocked(configStore.getModel).mockReturnValue(mockModel);
       vi.mocked(configStore.deleteModel).mockReturnValue();
 
-      const res = await app.request('/api/admin/models/model-001', {
+      const res = await authRequest(app, '/api/admin/models/model-001', {
         method: 'DELETE',
       });
       const body = await res.json();
@@ -238,7 +247,7 @@ describe('Admin API', () => {
     it('should return 404 when model not found', async () => {
       vi.mocked(configStore.getModel).mockReturnValue(null);
 
-      const res = await app.request('/api/admin/models/invalid-id', {
+      const res = await authRequest(app, '/api/admin/models/invalid-id', {
         method: 'DELETE',
       });
       const body = await res.json();

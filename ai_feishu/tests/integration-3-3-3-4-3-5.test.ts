@@ -11,15 +11,24 @@ vi.mock('../src/core/config-store', async (importOriginal) => {
   };
 });
 
+const TEST_AUTH_HEADER = { 'X-Admin-API-Key': 'test-admin-api-key-for-testing' };
+
+function authRequest(app: Hono, path: string, options?: any): Promise<Response> {
+  return app.request(path, {
+    ...options,
+    headers: { ...TEST_AUTH_HEADER, ...options?.headers },
+  }) as Promise<Response>;
+}
+
 describe('Integration: 3.3 → 3.4 → 3.5', () => {
   describe('TC-INT-001: Admin API structure validation', () => {
     it('should respond with proper model structure', async () => {
       const app = new Hono();
       const adminRouter = await import('../src/routers/admin').then(m => m.default);
-      
+
       app.route('/api/admin', adminRouter);
 
-      const res = await app.request('/api/admin/models');
+      const res = await authRequest(app, '/api/admin/models');
       const body = await res.json();
 
       expect(res.status).toBe(200);

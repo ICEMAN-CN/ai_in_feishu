@@ -9,6 +9,9 @@ const srcDir = resolve(__dirname, '../src');
 const _require = createRequire(import.meta.url);
 _require('tsx/cjs');
 
+// Required for admin router tests - ADMIN_API_KEY must be set at module load time
+process.env.ADMIN_API_KEY = 'test-admin-api-key-for-testing';
+
 const originalResolveFilename = (Module as any)._resolveFilename;
 (Module as any)._resolveFilename = function (request: string, ...args: any[]) {
   if (request.startsWith('@/')) {
