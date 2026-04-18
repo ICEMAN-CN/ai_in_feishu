@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type Database from 'better-sqlite3';
 import { getMCPClient } from '../core/mcp-client';
 import { logger } from '../core/logger';
+import { isValidAdminSessionToken } from '../core/token';
 import type { MCPToolAuthManager } from '../core/mcp-tool-auth';
 
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
@@ -17,7 +18,10 @@ async function authMiddleware(c: any, next: () => Promise<void>) {
     providedKey = c.req.header('X-Admin-API-Key');
   }
 
-  if (!providedKey || providedKey !== ADMIN_API_KEY) {
+  if (
+    !providedKey ||
+    (providedKey !== ADMIN_API_KEY && !isValidAdminSessionToken(providedKey))
+  ) {
     return c.json({ success: false, message: 'Unauthorized: Invalid or missing API key' }, { status: 401 });
   }
 
