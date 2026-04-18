@@ -6,6 +6,7 @@ import { CallbackRouter, CardAction } from './routers/callback';
 import adminRouter from './routers/admin';
 import { initKBRouter, initRAGRouter } from './routers/admin-kb';
 import adminKb from './routers/admin-kb';
+import { initMCPAdminRouter } from './routers/admin-mcp';
 import { KBFolderManager } from './core/kb-folder-manager';
 import { CardBuilder } from './feishu/card-builder';
 import { MessageService } from './feishu/message-service';
@@ -20,6 +21,7 @@ import { ChunkingService } from './services/chunking';
 import { EmbeddingService } from './services/embedding';
 import { RAGPipeline } from './services/rag-pipeline';
 import { VectorStoreService } from './core/vector-store-service';
+import { MCPToolAuthManager } from './core/mcp-tool-auth';
 import {
   ACTION_ARCHIVE_FULL,
   ACTION_ARCHIVE_SUMMARY,
@@ -66,6 +68,14 @@ const ragPipeline = new RAGPipeline(kbFolderManager, feishuDocService, chunkingS
 initKBRouter(kbFolderManager, ragPipeline);
 initRAGRouter(ragPipeline, new VectorStoreService(), kbFolderManager);
 app.route('/api/admin/kb', adminKb);
+
+// Initialize MCP router
+const mcpAuthManager = new MCPToolAuthManager(db);
+const mcpRouter = initMCPAdminRouter(db, mcpAuthManager);
+app.route('/api/admin/mcp', mcpRouter);
+
+// /admin without trailing slash makes relative ./assets/*.js resolve to /assets/* (HTML → MIME error).
+app.get('/admin', (c) => c.redirect('/admin/', 301));
 
 // Serve static files from dist/admin for the admin console
 app.use('/admin/*', serveStatic({ root: distPath, rewriteRequestPath: (path) => path }));
