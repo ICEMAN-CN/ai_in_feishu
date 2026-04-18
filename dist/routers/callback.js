@@ -1,0 +1,124 @@
+import { Hono } from 'hono';
+import { logger } from '../core/logger';
+import { verifyFeishuSignature } from '../feishu/validator';
+import { MessageHandler as FeishuMessageHandler } from '../feishu/message-handler';
+export class CallbackRouter {
+    app;
+    messageHandlers = new Set();
+    cardActionHandlers = new Set();
+    messageHandler;
+    processedMessageIds = new Map();
+    MAX_SIZE = 10000;
+    TTL_MS = 5 * 60 * 1000;
+    constructor() {
+        this.app = new Hono();
+        this.messageHandler = new FeishuMessageHandler();
+        this.setupRoutes();
+    }
+    setupRoutes() {
+        this.app.post('/feishu', async (c) => {
+            const body = await c.req.text();
+            const timestamp = c.req.header('X-Lark-Request-Timestamp') || '';
+            const signature = c.req.header('X-Lark-Request-Signature') || '';
+            if (!verifyFeishuSignature(body, timestamp, signature)) {
+                logger.warn('Callback', 'Invalid signature');
+                return c.json({ code: 401, msg: 'Unauthorized' }, 401);
+            }
+            let event;
+            try {
+                event = JSON.parse(body);
+            }
+            catch {
+                logger.error('Callback', 'Failed to parse event body');
+                return c.json({ code: 400, msg: 'Bad Request' }, 400);
+            }
+            if (this.isCardActionEvent(event)) {
+                this.handleCardAction(event);
+                return c.json({ code: 0, msg: 'success' });
+            }
+            if (!this.isMessageEvent(event)) {
+                return c.json({ code: 0, msg: 'success' });
+            }
+            const parsed = this.messageHandler.parseMessage(event);
+            if (parsed.senderType === 'bot') {
+                return c.json({ code: 0, msg: 'success' });
+            }
+            if (this.isDuplicate(parsed.messageId)) {
+                logger.debug('Callback', `Duplicate message: ${parsed.messageId}`);
+                return c.json({ code: 0, msg: 'success' });
+            }
+            this.emit(parsed);
+            return c.json({ code: 0, msg: 'success' });
+        });
+        this.app.get('/health', (c) => c.json({ status: 'ok' }));
+    }
+    isCardActionEvent(event) {
+        return event.event_type === 'im.card.action.trigger';
+    }
+    handleCardAction(event) {
+        const action = {
+            actionId: event.action?.action_id || event.action_id || '',
+            actionValue: event.action?.value || event.action_value || {},
+            messageId: event.message?.message_id || event.message_id || '',
+            chatId: event.message?.chat_id || event.chat_id || '',
+            openId: event.sender?.sender_id?.open_id || event.open_id || '',
+        };
+        logger.info('Callback', `Card action: ${action.actionId}`);
+        this.cardActionHandlers.forEach((handler) => {
+            try {
+                handler(action);
+            }
+            catch (e) {
+                logger.error('Callback', 'Card action handler error:', e);
+            }
+        });
+    }
+    isMessageEvent(event) {
+        const eventType = event.event_type || event.header?.event_type;
+        return eventType === 'im.message.receive_v1';
+    }
+    isDuplicate(messageId) {
+        const now = Date.now();
+        const timestamp = this.processedMessageIds.get(messageId);
+        if (timestamp !== undefined && now - timestamp < this.TTL_MS) {
+            return true;
+        }
+        this.processedMessageIds.set(messageId, now);
+        if (this.processedMessageIds.size > this.MAX_SIZE) {
+            const cutoff = now - this.TTL_MS;
+            for (const [id, ts] of this.processedMessageIds) {
+                if (ts < cutoff) {
+                    this.processedMessageIds.delete(id);
+                }
+            }
+        }
+        return false;
+    }
+    emit(parsed) {
+        logger.debug('Callback', `Emitting message event: ${parsed.messageId}`);
+        this.messageHandlers.forEach((handler) => {
+            try {
+                handler(parsed);
+            }
+            catch (e) {
+                logger.error('Callback', 'Handler error:', e);
+            }
+        });
+    }
+    onMessage(handler) {
+        this.messageHandlers.add(handler);
+    }
+    offMessage(handler) {
+        this.messageHandlers.delete(handler);
+    }
+    onCardAction(handler) {
+        this.cardActionHandlers.add(handler);
+    }
+    offCardAction(handler) {
+        this.cardActionHandlers.delete(handler);
+    }
+    getApp() {
+        return this.app;
+    }
+}
+//# sourceMappingURL=callback.js.map

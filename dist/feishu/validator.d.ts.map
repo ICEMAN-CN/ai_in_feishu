@@ -1,0 +1,1 @@
+{"version":3,"file":"validator.d.ts","sourceRoot":"","sources":["../../src/feishu/validator.ts"],"names":[],"mappings":"AAOA,wBAAgB,qBAAqB,CACnC,IAAI,EAAE,MAAM,EACZ,SAAS,EAAE,MAAM,EACjB,SAAS,EAAE,MAAM,GAChB,OAAO,CAqBT;AAED,wBAAgB,gBAAgB,CAAC,SAAS,EAAE,MAAM,GAAG,OAAO,CAU3D"}
