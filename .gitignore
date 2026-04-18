@@ -11,7 +11,8 @@
 .env
 
 # Ignore node_modules directory
-node_modules/
+/node_modules/
+/admin/node_modules/
 
 # Ignore dist directory
 dist/
@@ -20,10 +21,10 @@ dist/
 CLAUDE.md
 
 # Ignore .claude directory
-.claude/
+/.claude/
 
 # Ignore .obsidian directory
-.obsidian/
+/.obsidian/
 
 # Ignore .sisyphus directory
-.sisyphus/
+/.sisyphus/
