@@ -12,3 +12,18 @@
 
 # Ignore node_modules directory
 node_modules/
+
+# Ignore dist directory
+dist/
+
+# Ignore claude.md file
+CLAUDE.md
+
+# Ignore .claude directory
+.claude/
+
+# Ignore .obsidian directory
+.obsidian/
+
+# Ignore .sisyphus directory
+.sisyphus/

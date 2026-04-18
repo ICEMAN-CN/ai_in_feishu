@@ -1,4 +1,5 @@
 import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { logger } from './core/logger';
 import { CallbackRouter, CardAction } from './routers/callback';
@@ -24,6 +25,12 @@ import {
   ACTION_ARCHIVE_SUMMARY,
   ACTION_ARCHIVE_CANCEL,
 } from './constants/action-ids';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const distPath = resolve(__dirname, '../dist');
 
 const PORT = parseInt(process.env.CALLBACK_PORT || '3000', 10);
 
@@ -59,6 +66,13 @@ const ragPipeline = new RAGPipeline(kbFolderManager, feishuDocService, chunkingS
 initKBRouter(kbFolderManager, ragPipeline);
 initRAGRouter(ragPipeline, new VectorStoreService(), kbFolderManager);
 app.route('/api/admin/kb', adminKb);
+
+// Serve static files from dist/admin for the admin console
+app.use('/admin/*', serveStatic({ root: distPath, rewriteRequestPath: (path) => path }));
+app.use('/admin', serveStatic({ root: distPath, rewriteRequestPath: () => '/admin/index.html' }));
+
+// Catch-all route for SPA (must be last)
+app.get('/*', serveStatic({ root: distPath, rewriteRequestPath: () => '/admin/index.html' }));
 
 let messageService: MessageService;
 let streamingHandler: StreamingHandler;
