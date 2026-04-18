@@ -74,7 +74,18 @@ export class CallbackRouter {
       return c.json({ code: 0, msg: 'success' });
     });
 
-    this.app.get('/health', (c) => c.json({ status: 'ok' }));
+    this.app.get('/health', (c) => {
+      // WebSocket 状态由外部设置
+      const wsConnected = (globalThis as any).__WS_CONNECTED__ ?? false;
+      return c.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        wsConnected,
+        mcpConnected: false,
+        vectorDbStatus: 'ready',
+        currentModel: 'MiniMax-M2.7',
+      });
+    });
   }
 
   private isCardActionEvent(event: any): boolean {

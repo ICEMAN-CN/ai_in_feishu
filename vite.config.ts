@@ -5,7 +5,8 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   root: './admin',
-  base: './',
+  // Absolute base so assets load as /admin/assets/* even when opened as /admin (no trailing slash).
+  base: '/admin/',
   build: {
     outDir: '../dist/admin',
     emptyOutDir: true,

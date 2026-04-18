@@ -10,6 +10,7 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "init-db": "tsx scripts/init-db.ts",
+    "reset-demo": "bash scripts/reset-local-demo.sh",
     "test:performance": "vitest run tests/performance",
     "test:load": "autocannon -c 10 -d 30 http://localhost:3000/health",
     "analyze:perf": "tsx scripts/analyze-response-times.ts"

@@ -71,7 +71,7 @@ export class LLMRouter {
       case 'openai':
         return createOpenAI({ apiKey, baseURL: baseUrl });
       case 'anthropic':
-        return createAnthropic({ apiKey });
+        return createAnthropic({ apiKey, baseURL: baseUrl });
       case 'google':
         return createGoogleGenerativeAI({ apiKey });
       case 'ollama':
@@ -114,22 +114,32 @@ export class LLMRouter {
     messages: CoreMessage[],
     systemPrompt?: string
   ): AsyncGenerator<string> {
-    const model = this.getModel(modelId);
     const config = this.modelConfigs.get(modelId);
+    logger.info('LLMRouter', `streamGenerate called with modelId: ${modelId}`);
+    logger.info('LLMRouter', `Model config: ${JSON.stringify(config)}`);
 
-    const result = await streamText({
-      model,
-      messages: systemPrompt
-        ? [{ role: 'system', content: systemPrompt }, ...messages]
-        : messages,
-      maxTokens: config?.maxTokens || 4096,
-      temperature: config?.temperature || 0.7,
-    });
+    try {
+      const result = await streamText({
+        model: this.getModel(modelId),
+        messages: systemPrompt
+          ? [{ role: 'system', content: systemPrompt }, ...messages]
+          : messages,
+        maxTokens: config?.maxTokens || 4096,
+        temperature: config?.temperature || 0.7,
+      });
 
-    for await (const delta of result.fullStream) {
-      if (delta.type === 'text-delta') {
-        yield delta.textDelta;
+      logger.info('LLMRouter', 'streamText completed, iterating fullStream');
+
+      for await (const delta of result.fullStream) {
+        if (delta.type === 'text-delta') {
+          yield delta.textDelta;
+        }
       }
+
+      logger.info('LLMRouter', 'Stream iteration completed');
+    } catch (streamError) {
+      logger.error('LLMRouter', `Stream error: ${streamError}`);
+      throw streamError;
     }
   }
 

@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { getStats as getVectorStats } from '../core/vector-store';
+import { isValidAdminSessionToken } from '../core/token';
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
 if (!ADMIN_API_KEY) {
     throw new Error('ADMIN_API_KEY environment variable is required');
@@ -10,7 +11,8 @@ async function authMiddleware(c, next) {
     if (!providedKey) {
         providedKey = c.req.header('X-Admin-API-Key');
     }
-    if (!providedKey || providedKey !== ADMIN_API_KEY) {
+    if (!providedKey ||
+        (providedKey !== ADMIN_API_KEY && !isValidAdminSessionToken(providedKey))) {
         return c.json({ success: false, message: 'Unauthorized: Invalid or missing API key' }, { status: 401 });
     }
     await next();

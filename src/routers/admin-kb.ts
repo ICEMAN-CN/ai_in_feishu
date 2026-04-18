@@ -4,6 +4,7 @@ import { RAGPipeline } from '../services/rag-pipeline';
 import { VectorStoreService } from '../core/vector-store-service';
 import { getStats as getVectorStats } from '../core/vector-store';
 import { logger } from '../core/logger';
+import { isValidAdminSessionToken } from '../core/token';
 
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY;
 if (!ADMIN_API_KEY) {
@@ -18,7 +19,10 @@ async function authMiddleware(c: any, next: () => Promise<void>) {
     providedKey = c.req.header('X-Admin-API-Key');
   }
 
-  if (!providedKey || providedKey !== ADMIN_API_KEY) {
+  if (
+    !providedKey ||
+    (providedKey !== ADMIN_API_KEY && !isValidAdminSessionToken(providedKey))
+  ) {
     return c.json({ success: false, message: 'Unauthorized: Invalid or missing API key' }, { status: 401 });
   }
 

@@ -56,6 +56,8 @@ const ragPipeline = new RAGPipeline(kbFolderManager, feishuDocService, chunkingS
 initKBRouter(kbFolderManager, ragPipeline);
 initRAGRouter(ragPipeline, new VectorStoreService(), kbFolderManager);
 app.route('/api/admin/kb', adminKb);
+// /admin without trailing slash makes relative ./assets/*.js resolve to /assets/* (HTML → MIME error).
+app.get('/admin', (c) => c.redirect('/admin/', 301));
 // Serve static files from dist/admin for the admin console
 app.use('/admin/*', serveStatic({ root: distPath, rewriteRequestPath: (path) => path }));
 app.use('/admin', serveStatic({ root: distPath, rewriteRequestPath: () => '/admin/index.html' }));

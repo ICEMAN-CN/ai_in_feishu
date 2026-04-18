@@ -4,78 +4,129 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AI_Feishu is a **Feishu (Lark) native AI knowledge base** application - currently in planning/design phase (no source code written yet). It will be a lightweight, locally-deployed AI assistant that integrates with Feishu for multi-LLM chat and RAG-powered knowledge retrieval.
+AI_Feishu is a **Feishu (Lark) native AI knowledge base** - a locally-deployed AI assistant integrating Feishu for multi-LLM chat and RAG-powered knowledge retrieval.
 
-## Technology Stack (Planned)
+**Status**: Implementation Complete (8 sprints finished, 562 tests passing)
+
+## Technology Stack
 
 | Layer | Technology |
 |-------|------------|
-| Runtime | Node.js (LTS v20+) |
-| Backend Framework | Hono.js |
+| Runtime | Node.js (ES2022, ESNext) |
+| Backend Framework | Hono.js with `@hono/node-server` |
 | Frontend | React 18 + Vite + Tailwind CSS + shadcn/ui |
-| State Management | Zustand |
-| LLM Routing | Vercel AI SDK |
-| Feishu SDK | @larksuiteoapi/node-sdk |
+| State Management | Zustand (admin), React Query |
+| LLM Routing | Vercel AI SDK (`ai`, `@ai-sdk/anthropic`, `@ai-sdk/google`, `@ai-sdk/openai`) |
+| Feishu SDK | `@larksuiteoapi/node-sdk` |
 | Vector DB | LanceDB (embedded, file-based) |
-| Config DB | SQLite3 (better-sqlite3) |
-| Desktop Wrapper | Tauri 2.0 |
-| Text Processing | LangChain.js TextSplitters |
-| MCP Integration | Feishu MCP Server |
+| Config DB | SQLite3 (`better-sqlite3`) |
+| Text Processing | LangChain.js |
+| MCP Integration | Custom MCP client |
 
 ## Architecture Constraints
 
-- **B/S architecture**: Local Web App, desktop via Tauri in Phase 2
+- **B/S architecture**: Local Web App served on port 3000
 - **No external DB processes**: Postgres, Redis, Milvus are banned
-- **No serverless**: Must maintain WebSocket long connection with Feishu
-- **Data privacy**: All data stays local, never leaves user's machine
+- **No serverless**: Maintains persistent connection with Feishu via WebSocket
+- **Data privacy**: All data stays local
 - **Embedded databases only**: LanceDB (vector) + SQLite (config)
 
-## Core Modules (Planned)
-
-1. **Local Web Admin** - Configuration panel for API keys, model selection, KB folder binding, status monitoring
-2. **IM Native Interaction** - Feishu bot with interactive cards, thread-based sessions, streaming responses
-3. **Tool Calling & Feishu API** - Three core tools: `read_feishu_url`, `search_local_kb`, `save_to_new_doc`
-4. **Local RAG Pipeline** - Document ingestion, chunking, embedding, LanceDB storage
-5. **MCP Integration** - Connect to Feishu official MCP Server
-
-## Directory Structure (Planned)
+## Directory Structure
 
 ```
-ai_feishu/
-├── src/
-│   ├── index.ts          # Entry point
-│   ├── app.ts            # Hono app setup
-│   ├── core/             # Core engine modules
-│   ├── routers/          # API routes
-│   ├── services/         # Business logic
-│   ├── tools/            # Tool definitions
+/                          # Project root
+├── src/                   # Backend source code
+│   ├── index.ts           # Entry point (port 3000)
+│   ├── app.ts             # AIFeishuApp class alternative entry
+│   ├── core/              # Core engine modules
+│   │   ├── config-store.ts    # SQLite CRUD (models, sessions, KB, MCP tools)
+│   │   ├── encryption.ts     # Encryption utilities
+│   │   ├── kb-folder-manager.ts # KB folder management
+│   │   ├── mcp-client.ts     # MCP protocol client
+│   │   ├── session-manager.ts # Session management
+│   │   ├── token.ts          # Admin token auth (24h expiry)
+│   │   ├── vector-store-service.ts # Vector storage service
+│   │   ├── vector-store.ts    # LanceDB operations
+│   │   └── ws-manager.ts      # WebSocket manager
+│   ├── routers/           # API route handlers
+│   │   ├── admin.ts       # Model & config management
+│   │   ├── admin-kb.ts    # Knowledge base management
+│   │   ├── admin-mcp.ts   # MCP management
+│   │   └── callback.ts    # Feishu callback/webhook handler
+│   ├── services/          # Business logic
+│   │   ├── llm-router.ts      # LLM routing
+│   │   ├── rag-pipeline.ts   # RAG processing
+│   │   ├── streaming-handler.ts # SSE streaming
+│   │   └── ...
 │   ├── feishu/           # Feishu integration
+│   │   ├── card-builder.ts   # Interactive card messages
+│   │   ├── client.ts         # Feishu client
+│   │   └── message-handler.ts # Message handling
+│   ├── tools/            # MCP tool definitions
+│   │   ├── read_feishu_url.ts
+│   │   ├── save_to_new_doc.ts
+│   │   └── search_local_kb.ts
 │   └── types/            # TypeScript types
-├── admin/                # React frontend
-├── data/                 # Local data storage (.lance, .db)
-├── scripts/              # Utility scripts
-└── tests/                # Test files
+├── admin/                 # React frontend (Vite SPA)
+│   └── src/
+│       ├── App.tsx
+│       ├── pages/        # Dashboard, KnowledgeBase, Login, Models, Settings, MCPAuth
+│       ├── components/   # Layout, Nav, ProtectedRoute
+│       └── stores/       # Zustand stores (useAuthStore, useConfigStore)
+├── data/                  # Local storage (.lance, .db files)
+├── tests/                 # Test suite (562 tests)
+│   ├── core/, routers/, services/, tools/
+│   ├── e2e/, security/, performance/, exception/
+├── docs/                  # Documentation
+│   ├── ai_feishu-PRD-正式版.md
+│   ├── ai_feishu-技术栈选型.md
+│   ├── ai_feishu-核心点记录.md
+│   └── sprints/           # Sprint planning docs
+└── scripts/               # Utility scripts
 ```
 
-## Sprint Phases
+## Build Commands
 
-| Sprint | Focus |
-|--------|-------|
-| Sprint 01 | Infrastructure - project scaffolding, SQLite + LanceDB init, Feishu bot setup |
-| Sprint 02 | Feishu Message Channel - WebSocket connection, message receiving/sending |
-| Sprint 03 | Model Routing & Chat - Vercel AI SDK integration, multi-LLM support |
-| Sprint 04 | MCP Integration - Feishu MCP Server connection |
-| Sprint 05 | RAG Pipeline - document ingestion, chunking, embedding |
-| Sprint 06 | Tool Calling Integration - AI reading/writing Feishu docs |
-| Sprint 07 | Admin Console - React dashboard |
-| Sprint 08 | Integration Testing & Optimization |
+```bash
+npm run dev              # tsx watch src/index.ts (development with hot reload)
+npm run build             # tsc && vite build (type check + build)
+npm run start             # node dist/index.js (production)
+npm run test              # vitest (all tests)
+npm run lint              # eslint src --ext .ts
+npm run typecheck         # tsc --noEmit
+npm run init-db           # tsx scripts/init-db.ts
+npm run reset-demo        # bash scripts/reset-local-demo.sh
+npm run test:performance  # vitest run tests/performance
+```
 
-## Key Design Decisions
+Single test file: `npx vitest run tests/routers/admin.test.ts`
 
-- **WebSocket over HTTP**: Feishu bot uses persistent connection via `@larksuiteoapi/node-sdk`
-- **Thread-based conversations**: Each conversation thread locks to a specific LLM
-- **Append-only documents**: AI can only create new docs, never modify existing ones
-- **No web chat UI in Phase 1**: Only Feishu IM interaction to keep MVP lightweight
+## Key Architecture Patterns
+
+**Hono Router-Based Architecture**:
+- Routes organized in `/src/routers/` - admin, admin-kb, admin-mcp, callback
+- Each router is a Hono instance mounted onto the main app
+- Backend API prefix: `/api/admin`
+
+**Dual Storage**:
+- **LanceDB** (`src/core/vector-store.ts`): Document embeddings for RAG
+- **SQLite** (`src/core/config-store.ts`): Models, sessions, KB folders, system config
+
+**Message Flow**:
+1. Feishu sends events via `POST /feishu` (callback router)
+2. `CallbackRouter.onMessage()` parses and emits to handlers
+3. Card actions handled via `onCardAction()`
+4. Responses sent via SSE streaming
+
+**Admin API Authentication**:
+- Header: `Authorization: Bearer <token>` or `X-Admin-API-Key`
+- Session tokens expire after 24 hours
+
+## Core Tools (MCP)
+
+1. `read_feishu_url` - Read Feishu document content
+2. `search_local_kb` - Search local knowledge base
+3. `save_to_new_doc` - Save content to new Feishu document
 
 ## Documentation
 
@@ -83,37 +134,17 @@ All documentation is in `/docs`:
 - `ai_feishu-PRD-正式版.md` - Comprehensive PRD
 - `ai_feishu-技术栈选型.md` - Technology stack rationale
 - `ai_feishu-核心点记录.md` - Core implementation decisions
-- `sprints/` - Sprint planning documents
+- `sprints/` - Sprint planning documents (Sprint-01 through Sprint-08-6)
 
-## Build Commands (Planned)
+## Environment Variables
 
-```bash
-npm run dev     # tsx watch src/index.ts
-npm run build   # tsc && vite build
-npm run start   # node dist/index.js
-npm test        # vitest
-npm run lint    # eslint src --ext .ts
-```
+See `.env.example` for required variables:
+- `ADMIN_API_KEY` - Admin UI login key
+- `ENCRYPTION_KEY` - 64-char hex for encryption
+- `FEISHU_APP_ID`, `FEISHU_APP_SECRET` - Feishu bot credentials
 
-## Status
+## Key Design Decisions
 
-**✅ Project Implementation Complete** - All 8 sprints have been completed.
-
-### Implementation Summary:
-- **Backend**: Hono.js REST API with WebSocket support
-- **Frontend**: React + Vite + Tailwind CSS Admin Console
-- **Database**: SQLite (config) + LanceDB (vectors)
-- **Auth**: Login-based token authentication (24h expiry)
-- **Tests**: 562 tests passing (integration, security, performance, exception handling)
-
-### Recent Security Fixes (Sprint 8.1-8.10):
-- Fixed 3 CRITICAL vulnerabilities (auth bypass, API secret exposure)
-- Fixed 3 HIGH severity issues (SQL injection, memory leak)
-- Implemented login-based auth flow
-- All tests passing, build succeeds
-
-### Key Files:
-- `ai_feishu/src/` - Backend source code
-- `ai_feishu/admin/` - React frontend
-- `ai_feishu/tests/` - Test suite (562 tests)
-- `docs/sprints/` - Sprint documentation
+- **WebSocket over HTTP**: Feishu bot uses persistent connection via `@larksuiteoapi/node-sdk`
+- **Thread-based conversations**: Each conversation thread locks to a specific LLM
+- **Append-only documents**: AI can only create new docs, never modify existing ones

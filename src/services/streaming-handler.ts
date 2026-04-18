@@ -44,11 +44,17 @@ export class StreamingHandler {
       throw new Error(`Session not found for threadId: ${threadId}`);
     }
 
+    logger.info('StreamingHandler', `Session modelId: ${session.modelId}`);
+
     const modelName = this.llmRouter.getModelName(session.modelId);
     this.currentModelName = modelName;
 
+    logger.info('StreamingHandler', `Model name: ${modelName}`);
+
     const initialCard = CardBuilder.streamingCard(modelName, '正在思考...');
+    logger.info('StreamingHandler', `Sending initial card: ${JSON.stringify(initialCard)}`);
     const feishuMessageId = await this.messageService.sendCardMessage(chatId, initialCard);
+    logger.info('StreamingHandler', `Card sent, messageId: ${feishuMessageId}`);
 
     const truncatedUserMessage = contextManager.truncateMessage(userMessage);
 
@@ -76,12 +82,18 @@ export class StreamingHandler {
     let lastUpdateTime = 0;
     let firstByteTime: number | null = null;
 
+    logger.info('StreamingHandler', `Starting stream for modelId: ${session.modelId}`);
+
     try {
-      for await (const textDelta of this.llmRouter.streamGenerate(
+      const streamGen = this.llmRouter.streamGenerate(
         session.modelId,
         allMessages,
         session.systemPrompt
-      )) {
+      );
+
+      logger.info('StreamingHandler', 'Stream generator created, starting iteration');
+
+      for await (const textDelta of streamGen) {
         fullResponse += textDelta;
 
         // Record first byte time

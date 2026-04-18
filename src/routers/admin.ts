@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { v4 as uuidv4 } from 'uuid';
 import { encryptForStorage } from '../core/encryption';
-import { generateToken } from '../core/token';
+import { generateToken, isValidAdminSessionToken } from '../core/token';
 import { logger } from '../core/logger';
 import { getAllModels, saveModel, deleteModel, getModel, getSystemConfig, setSystemConfig } from '../core/config-store';
 import type { ModelConfig, ModelProvider } from '../types/config';
@@ -19,7 +19,10 @@ async function authMiddleware(c: any, next: () => Promise<void>) {
     providedKey = c.req.header('X-Admin-API-Key');
   }
 
-  if (!providedKey || providedKey !== ADMIN_API_KEY) {
+  if (
+    !providedKey ||
+    (providedKey !== ADMIN_API_KEY && !isValidAdminSessionToken(providedKey))
+  ) {
     return c.json({ success: false, message: 'Unauthorized: Invalid or missing API key' }, { status: 401 });
   }
 
